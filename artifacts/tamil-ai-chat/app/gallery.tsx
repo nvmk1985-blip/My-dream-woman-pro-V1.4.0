@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Alert,
+  View, Text, TouchableOpacity, Alert,
   ActivityIndicator, Image, Dimensions, ScrollView, FlatList,
   Platform, TextInput, Modal, BackHandler, StatusBar, Linking,
 } from 'react-native';
@@ -15,10 +15,14 @@ import { uploadUriToCloudinary, listCloudinaryImages, listCloudinaryBackups, lis
 import { createBackupZip, getInstalledApkInfo, startBackupUpload, getBackupUploadState, cancelBackupUpload, clearBackupUploadState, addBackupUploadListener, type NativeBackupUploadState } from '../services/installed-apk';
 import { ParamsStore } from '../context/params-store';
 import { requestPhotoVideoPermissionsAsync } from '../services/media-permissions';
+import themeTokens from '../constants/colors';
+import { useColors } from '../hooks/useColors';
+import { createThemedStyles } from '../utils/themed-styles';
 
 const { width } = Dimensions.get('window');
 const COLS = 3;
 const THUMB = (width - (COLS + 1) * 2) / COLS;
+const C = themeTokens.dark;
 
 interface CloudFile { url: string; public_id: string; isVideo?: boolean; isRaw?: boolean; resource_type?: string; format?: string; fileName?: string; bytes?: number }
 
@@ -33,15 +37,15 @@ type PendingBackup = {
 interface SubFolder  { id: string; label: string }
 
 const ALBUM_META: Record<string, { label: string; emoji: string; color: string; mediaType: MediaLibrary.MediaTypeValue[] }> = {
-  pictures:    { label: 'Pictures',    emoji: '🖼️',  color: '#4A90D9', mediaType: [MediaLibrary.MediaType.photo] },
-  camera:      { label: 'Camera',      emoji: '📷',  color: '#E8821A', mediaType: [MediaLibrary.MediaType.photo] },
-  movies:      { label: 'Movies',      emoji: '🎬',  color: '#C0392B', mediaType: [MediaLibrary.MediaType.video] },
-  screenshots: { label: 'Screenshots', emoji: '📱',  color: '#27AE60', mediaType: [MediaLibrary.MediaType.photo] },
-  downloads:   { label: 'Downloads',   emoji: '⬇️',  color: '#8E6BBE', mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video] },
-  documents:   { label: 'Documents',   emoji: '📄',  color: '#3498DB', mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video] },
-  music:       { label: 'Music',       emoji: '🎵',  color: '#9B59B6', mediaType: [MediaLibrary.MediaType.audio] },
-  icons:       { label: 'Icons',       emoji: '🎨',  color: '#FF6B35', mediaType: [MediaLibrary.MediaType.photo] },
-  projects:    { label: 'Projects',    emoji: '💼',  color: '#8E44AD', mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video] },
+  pictures:    { label: 'Pictures',    emoji: '🖼️',  color: C.cyanPrimary, mediaType: [MediaLibrary.MediaType.photo] },
+  camera:      { label: 'Camera',      emoji: '📷',  color: C.goldPrimary, mediaType: [MediaLibrary.MediaType.photo] },
+  movies:      { label: 'Movies',      emoji: '🎬',  color: C.cyanBright, mediaType: [MediaLibrary.MediaType.video] },
+  screenshots: { label: 'Screenshots', emoji: '📱',  color: C.cyanPrimary, mediaType: [MediaLibrary.MediaType.photo] },
+  downloads:   { label: 'Downloads',   emoji: '⬇️',  color: C.goldBright, mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video] },
+  documents:   { label: 'Documents',   emoji: '📄',  color: C.cyanPrimary, mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video] },
+  music:       { label: 'Music',       emoji: '🎵',  color: C.goldPrimary, mediaType: [MediaLibrary.MediaType.audio] },
+  icons:       { label: 'Icons',       emoji: '🎨',  color: C.goldBright, mediaType: [MediaLibrary.MediaType.photo] },
+  projects:    { label: 'Projects',    emoji: '💼',  color: C.goldPrimary, mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video] },
 };
 
 function foldersKey(album: string)           { return `storage_folders_${album}`; }
@@ -55,11 +59,16 @@ function cloudFolderFor(album: string, sub?: string) {
 }
 
 export default function GalleryScreen() {
+  const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { album, mode } = useLocalSearchParams<{ album?: string; mode?: string }>();
   const albumKey = (album ?? 'pictures') as string;
   const meta = ALBUM_META[albumKey] ?? ALBUM_META.pictures;
+  const accentTextColor =
+    meta.color === colors.goldPrimary || meta.color === colors.goldBright
+      ? colors.textOnGold
+      : colors.textOnCyan;
   const isChatSelectMode = mode === 'chat';
 
   // ── Cloud view state ─────────────────────────────────────────────
@@ -1091,7 +1100,7 @@ export default function GalleryScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
-      <View style={[s.header, { backgroundColor: meta.color, paddingTop: insets.top + 14 }]}>
+      <View style={[s.header, { backgroundColor: colors.bgSecondary, borderBottomWidth: 1, borderBottomColor: meta.color, paddingTop: insets.top + 14 }]}>
         <TouchableOpacity onPress={depth === 1 ? goUp : () => router.back()} style={s.backBtn}>
           <Text style={s.backTxt}>{depth === 1 ? '‹ Back' : '‹'}</Text>
         </TouchableOpacity>
@@ -1108,15 +1117,15 @@ export default function GalleryScreen() {
         <View style={s.uploadBar}>
           {backupFileUploadProgress !== null ? (
             <>
-              <Text style={s.uploadBarTxt}>📦 Backup Uploading... {backupFileUploadProgress}%</Text>
+              <Text style={[s.uploadBarTxt, { color: colors.textOnCyan }]}>📦 Backup Uploading... {backupFileUploadProgress}%</Text>
               <View style={s.backupFileBarBg}>
                 <View style={[s.backupFileBarFill, { width: `${backupFileUploadProgress}%` as any }]} />
               </View>
             </>
           ) : (
             <>
-              <ActivityIndicator color="#fff" size="small" />
-              <Text style={s.uploadBarTxt}>Upload பண்றேன்... {uploadProgress}/{uploadTotal}</Text>
+              <ActivityIndicator color={colors.textPrimary} size="small" />
+              <Text style={[s.uploadBarTxt, { color: colors.textOnCyan }]}>Upload பண்றேன்... {uploadProgress}/{uploadTotal}</Text>
             </>
           )}
         </View>
@@ -1150,13 +1159,13 @@ export default function GalleryScreen() {
         </View>
       )}
 
-      <ScrollView style={{ flex: 1, backgroundColor: '#111' }} contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView style={{ flex: 1, backgroundColor: colors.bgPrimary }} contentContainerStyle={{ paddingBottom: 24 }}>
 
         {/* Action buttons */}
         {!isChatSelectMode && (
           <View style={s.actionRow}>
             <TouchableOpacity
-              style={[s.uploadBtn, albumKey === 'icons' && { backgroundColor: '#FF6B35' }]}
+              style={[s.uploadBtn, albumKey === 'icons' && { backgroundColor: colors.goldBright }]}
               onPress={albumKey === 'icons'
                 ? pickIconWithCrop
                 : albumKey === 'projects'
@@ -1164,7 +1173,7 @@ export default function GalleryScreen() {
                 : openFolderBrowser}
               disabled={uploading || backingUp}
             >
-              <Text style={s.uploadBtnTxt}>
+              <Text style={[s.uploadBtnTxt, { color: colors.textOnGold }]}>
                 {albumKey === 'icons' ? '🎨 Icon Upload (1:1)' : '⬆ Upload'}
               </Text>
             </TouchableOpacity>
@@ -1173,7 +1182,7 @@ export default function GalleryScreen() {
             </TouchableOpacity>
             {albumKey === 'projects' && depth === 0 && (
               <TouchableOpacity style={s.backupBtn} disabled={uploading || backingUp} onPress={confirmProjectBackup}>
-                <Text style={s.backupBtnTxt}>💾 Backup</Text>
+                <Text style={[s.backupBtnTxt, { color: colors.textOnGold }]}>💾 Backup</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1234,7 +1243,7 @@ export default function GalleryScreen() {
               <Text style={s.driveConnection}>✓ {driveStatus.authMode === 'oauth' ? 'OAuth' : 'Service Account'} · {driveStatus.accountEmail}
                 {'\n'}{driveStatus.folderName} · upload access verified</Text>
             )}
-            {driveLoading && <ActivityIndicator color="#60a5fa" size="small" />}
+            {driveLoading && <ActivityIndicator color={colors.cyanPrimary} size="small" />}
             {!driveLoading && driveBackups.length === 0 && (
               <Text style={s.driveHint}>
                 {driveError || 'இந்த folder-ல் APK backup files இன்னும் இல்லை.'}
@@ -1289,7 +1298,7 @@ export default function GalleryScreen() {
                   onLongPress={() => { setCloudSelMode(true); setCloudSelIds(new Set([file.public_id])); }}
                   activeOpacity={0.85}>
                   {file.isRaw
-                    ? <View style={[s.thumbImg, { backgroundColor: '#20233a', alignItems: 'center', justifyContent: 'center', padding: 6 }]}><Text style={{ color: '#f6c453', fontWeight: '800', fontSize: 18 }}>{(file.format || file.fileName?.split('.').pop() || 'FILE').toUpperCase().slice(0, 5)}</Text><Text style={{ color: '#aaa', fontSize: 9, marginTop: 4 }}>RAW FILE</Text></View>
+                    ? <View style={[s.thumbImg, { backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', padding: 6 }]}><Text style={{ color: colors.goldBright, fontWeight: '800', fontSize: 18 }}>{(file.format || file.fileName?.split('.').pop() || 'FILE').toUpperCase().slice(0, 5)}</Text><Text style={{ color: colors.textTertiary, fontSize: 9, marginTop: 4 }}>RAW FILE</Text></View>
                     : file.isVideo
                     ? <View style={[s.thumbImg, s.videoThumb]}><Text style={s.videoPlay}>▶</Text></View>
                     : <Image source={{ uri: file.url }} style={s.thumbImg} resizeMode="cover" />}
@@ -1303,9 +1312,9 @@ export default function GalleryScreen() {
 
       {/* ── MODAL 1: Phone Albums browser ───────────────────────── */}
       <Modal visible={showAlbums} animationType="slide" onRequestClose={() => { setShowAlbums(false); if (isChatSelectMode) router.back(); }}>
-        <SafeAreaView style={[s.safe, { backgroundColor: '#1a1a1a' }]} edges={['bottom']}>
+        <SafeAreaView style={[s.safe, { backgroundColor: colors.bgPrimary }]} edges={['bottom']}>
           <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-          <View style={[s.header, { backgroundColor: meta.color, paddingTop: insets.top + 14 }]}>
+          <View style={[s.header, { backgroundColor: colors.bgSecondary, borderBottomWidth: 1, borderBottomColor: meta.color, paddingTop: insets.top + 14 }]}>
             <TouchableOpacity onPress={() => { setShowAlbums(false); if (isChatSelectMode) router.back(); }} style={s.backBtn}>
               <Text style={s.backTxt}>✕</Text>
             </TouchableOpacity>
@@ -1343,10 +1352,10 @@ export default function GalleryScreen() {
                   style={[s.doneBtn, { backgroundColor: meta.color, marginTop: 24, minWidth: 140, paddingVertical: 12 }]}
                   onPress={() => { setShowAlbums(false); setTimeout(() => openFolderBrowser(), 400); }}
                 >
-                  <Text style={s.doneBtnTxt}>🔄 Retry</Text>
+                  <Text style={[s.doneBtnTxt, { color: accentTextColor }]}>🔄 Retry</Text>
                 </TouchableOpacity>
                 {!isChatSelectMode && <TouchableOpacity
-                  style={[s.doneBtn, { backgroundColor: '#444', marginTop: 12, minWidth: 140, paddingVertical: 12 }]}
+                  style={[s.doneBtn, { backgroundColor: colors.buttonSecondary, marginTop: 12, minWidth: 140, paddingVertical: 12 }]}
                   onPress={async () => {
                     setShowAlbums(false);
                     setTimeout(async () => {
@@ -1396,7 +1405,7 @@ export default function GalleryScreen() {
                     }, 300);
                   }}
                 >
-                  <Text style={s.doneBtnTxt}>🖼️ Gallery திற</Text>
+                  <Text style={[s.doneBtnTxt, { color: colors.buttonSecondaryText }]}>🖼️ Gallery திற</Text>
                 </TouchableOpacity>}
               </View>
             }
@@ -1407,8 +1416,8 @@ export default function GalleryScreen() {
 
       {/* ── MODAL 2: Files in selected album ────────────────────── */}
       <Modal visible={showAssets} animationType="slide" onRequestClose={() => setShowAssets(false)}>
-        <SafeAreaView style={[s.safe, { backgroundColor: '#111' }]} edges={['top','bottom']}>
-          <View style={[s.header, { backgroundColor: meta.color }]}>
+        <SafeAreaView style={[s.safe, { backgroundColor: colors.bgPrimary }]} edges={['top','bottom']}>
+          <View style={[s.header, { backgroundColor: colors.bgSecondary, borderBottomWidth: 1, borderBottomColor: meta.color }]}>
             <TouchableOpacity onPress={() => setShowAssets(false)} style={s.backBtn}>
               <Text style={s.backTxt}>‹ Back</Text>
             </TouchableOpacity>
@@ -1417,7 +1426,7 @@ export default function GalleryScreen() {
             </Text>
             {pickerSel.size > 0 ? (
               <TouchableOpacity onPress={confirmSelection} style={[s.doneBtn, { backgroundColor: meta.color }]}>
-                <Text style={s.doneBtnTxt}>{isChatSelectMode ? 'Use this' : `Done (${pickerSel.size})`}</Text>
+                <Text style={[s.doneBtnTxt, { color: accentTextColor }]}>{isChatSelectMode ? 'Use this' : `Done (${pickerSel.size})`}</Text>
               </TouchableOpacity>
             ) : <View style={{ width: 80 }} />}
           </View>
@@ -1426,7 +1435,7 @@ export default function GalleryScreen() {
             <View style={s.pickerSelBar}>
               <Text style={s.pickerSelTxt}>{pickerSel.size} file{pickerSel.size > 1 ? 's' : ''} select ஆச்சு</Text>
               <TouchableOpacity style={[s.selDelBtn, { backgroundColor: meta.color }]} onPress={confirmSelection}>
-                <Text style={s.selDelTxt}>{isChatSelectMode ? 'Use this' : '⬆ Upload'}</Text>
+                <Text style={[s.selDelTxt, { color: accentTextColor }]}>{isChatSelectMode ? 'Use this' : '⬆ Upload'}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1482,7 +1491,7 @@ export default function GalleryScreen() {
               <Text style={s.previewCloseTxt}>✕</Text>
             </TouchableOpacity>
             {fullView.isRaw
-              ? <View style={{ alignItems: 'center', padding: 24 }}><Text style={{ fontSize: 64 }}>📄</Text><Text style={{ color: '#fff', fontSize: 18, fontWeight: '700', marginTop: 14, textAlign: 'center' }}>{fullView.fileName || fullView.public_id.split('/').pop()}</Text><TouchableOpacity style={{ backgroundColor: '#6C63FF', borderRadius: 10, paddingHorizontal: 20, paddingVertical: 12, marginTop: 18 }} onPress={() => Linking.openURL(fullView.url).catch(() => Alert.alert('Download error', 'File open ஆகவில்லை'))}><Text style={{ color: '#fff', fontWeight: '700' }}>Open / Download</Text></TouchableOpacity></View>
+              ? <View style={{ alignItems: 'center', padding: 24 }}><Text style={{ fontSize: 64 }}>📄</Text><Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700', marginTop: 14, textAlign: 'center' }}>{fullView.fileName || fullView.public_id.split('/').pop()}</Text><TouchableOpacity style={{ backgroundColor: colors.goldPrimary, borderRadius: 10, paddingHorizontal: 20, paddingVertical: 12, marginTop: 18 }} onPress={() => Linking.openURL(fullView.url).catch(() => Alert.alert('Download error', 'File open ஆகவில்லை'))}><Text style={{ color: colors.textOnGold, fontWeight: '700' }}>Open / Download</Text></TouchableOpacity></View>
               : fullView.isVideo
               ? <View style={s.videoPreview}><Text style={{ fontSize: 64 }}>▶</Text></View>
               : <Image source={{ uri: fullView.url }} style={s.previewImg} resizeMode="contain" />}
@@ -1495,14 +1504,14 @@ export default function GalleryScreen() {
         <View style={s.dialogOverlay}>
           <View style={s.dialog}>
             <Text style={s.dialogTitle}>📁 New Folder</Text>
-            <TextInput style={s.dialogInput} placeholder="Folder பெயர்..." placeholderTextColor="#aaa"
+            <TextInput style={s.dialogInput} placeholder="Folder பெயர்..." placeholderTextColor={colors.inputPlaceholder}
               value={folderName} onChangeText={setFolderName} autoFocus onSubmitEditing={confirmNewFolder} />
             <View style={s.dialogBtns}>
               <TouchableOpacity style={s.dialogCancel} onPress={() => setFolderDialog(false)}>
                 <Text style={s.dialogCancelTxt}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[s.dialogOk, { backgroundColor: meta.color }]} onPress={confirmNewFolder}>
-                <Text style={s.dialogOkTxt}>உருவாக்கு</Text>
+                <Text style={[s.dialogOkTxt, { color: accentTextColor }]}>உருவாக்கு</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1512,7 +1521,7 @@ export default function GalleryScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const s = createThemedStyles({
   safe:           { flex: 1, backgroundColor: '#111' },
   header:         { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 12 },
   backBtn:        { minWidth: 60 },

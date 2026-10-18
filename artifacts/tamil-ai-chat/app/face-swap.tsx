@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   Image, Alert, ActivityIndicator, ScrollView, Dimensions, StatusBar, Switch, Animated, Linking,
@@ -10,6 +10,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { requestPhotoVideoPermissionsAsync } from '../services/media-permissions';
+import { Ionicons } from '@expo/vector-icons';
+import { useColors } from '../hooks/useColors';
 
 const { width } = Dimensions.get('window');
 
@@ -17,6 +19,11 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 // ── Progress Bar Component ────────────────────────────────────────────────────
 function ProgressBar({ progress, statusMsg }: { progress: number; statusMsg: string }) {
+  const colors = useColors();
+  const pb = useMemo(() => createProgressStyles(colors), [
+    colors.bgTertiary, colors.card, colors.borderCyan, colors.textSecondary, colors.goldBright,
+    colors.border, colors.cyanPrimary, colors.textMuted, colors.textCyan,
+  ]);
   const clampedProgress = Math.min(100, Math.max(0, progress));
   return (
     <View style={pb.container}>
@@ -43,28 +50,28 @@ function ProgressBar({ progress, statusMsg }: { progress: number; statusMsg: str
   );
 }
 
-const pb = StyleSheet.create({
+const createProgressStyles = (colors: ReturnType<typeof useColors>) => StyleSheet.create({
   container: {
-    backgroundColor: '#12103a', borderRadius: 14, padding: 14,
-    marginBottom: 12, borderWidth: 1, borderColor: '#7c3aed55',
+    backgroundColor: colors.card, borderRadius: 14, padding: 14,
+    marginBottom: 12, borderWidth: 1, borderColor: colors.borderCyan,
   },
   row: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10, gap: 8 },
-  statusTxt: { color: '#c4b5fd', fontSize: 12, flex: 1, lineHeight: 18 },
-  pct: { color: '#fff', fontSize: 22, fontWeight: '900', minWidth: 50, textAlign: 'right' },
+  statusTxt: { color: colors.textSecondary, fontSize: 12, flex: 1, lineHeight: 18 },
+  pct: { color: colors.goldBright, fontSize: 22, fontWeight: '900', minWidth: 50, textAlign: 'right' },
   track: {
-    height: 10, borderRadius: 6, backgroundColor: '#1e1b4b',
+    height: 10, borderRadius: 6, backgroundColor: colors.bgTertiary,
     overflow: 'hidden', marginBottom: 12,
   },
   fill: {
     height: '100%', borderRadius: 6,
-    backgroundColor: '#7c3aed',
+    backgroundColor: colors.cyanPrimary,
   },
   stepsRow: { flexDirection: 'row', justifyContent: 'space-between' },
   step: { alignItems: 'center', gap: 4 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#333' },
-  dotActive: { backgroundColor: '#7c3aed' },
-  stepLabel: { color: '#555', fontSize: 9, fontWeight: '600' },
-  stepLabelActive: { color: '#a78bfa' },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.border },
+  dotActive: { backgroundColor: colors.cyanPrimary },
+  stepLabel: { color: colors.textMuted, fontSize: 9, fontWeight: '600' },
+  stepLabelActive: { color: colors.textCyan },
 });
 
 // ── HuggingFace Space Gradio helper ──────────────────────────────────────────
@@ -362,6 +369,19 @@ async function urlToDataUri(url: string): Promise<string | null> {
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 export default function FaceSwapScreen() {
+  const colors = useColors();
+  const s = useMemo(() => createStyles(colors), [
+    colors.bgPrimary, colors.bgSecondary, colors.bgTertiary, colors.bgDeep,
+    colors.card, colors.cardSecondary, colors.border, colors.borderSubtle,
+    colors.borderCyan, colors.borderGold, colors.goldBorder, colors.cyanBorder,
+    colors.goldPrimary, colors.goldBright, colors.cyanPrimary, colors.cyanDark,
+    colors.cyanSoft, colors.success, colors.warning, colors.error, colors.info,
+    colors.buttonGold, colors.buttonCyan, colors.buttonSecondary, colors.buttonDisabled,
+    colors.textPrimary, colors.textSecondary, colors.textTertiary, colors.textMuted,
+    colors.textDisabled, colors.textOnGold, colors.textOnCyan, colors.textCyan,
+    colors.inputBackground, colors.inputBorder, colors.inputText, colors.inputPlaceholder,
+    colors.overlay,
+  ]);
   const [targetUri, setTargetUri] = useState<string | null>(null);
   const [targetB64, setTargetB64] = useState<string | null>(null);
   const [faceUri, setFaceUri] = useState<string | null>(null);
@@ -519,28 +539,28 @@ export default function FaceSwapScreen() {
 
   return (
     <SafeAreaView style={s.root} edges={['top', 'bottom']}>
-      <StatusBar backgroundColor="#1a1a2e" barStyle="light-content" />
+      <StatusBar backgroundColor={colors.bgSecondary} barStyle="light-content" />
       <Stack.Screen options={{
-        title: '🤳 Face Swap',
-        headerStyle: { backgroundColor: '#1a1a2e' },
-        headerTintColor: '#fff',
+        title: 'Face Swap',
+        headerStyle: { backgroundColor: colors.bgSecondary },
+        headerTintColor: colors.textPrimary,
         headerTitleStyle: { fontWeight: 'bold' },
       }} />
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
-        <Text style={s.title}>AI Face Swap</Text>
+        <View style={s.screenTitleRow}><Ionicons name="scan-outline" size={23} color={colors.goldBright} /><Text style={s.title}>AI Face Swap</Text></View>
         <Text style={s.sub}>InsightFace · InSwapper128 · GFPGAN · Real-ESRGAN</Text>
 
         <View style={s.engineCard}>
-          <Text style={s.engineTitle}>🚀 Engine Stack</Text>
-          <Text style={s.engineLine}>🔍 InsightFace — face detection & landmark</Text>
-          <Text style={s.engineLine}>🔄 InSwapper_128 — neural face swap</Text>
-          <Text style={s.engineLine}>✨ GFPGAN — face restoration & detail</Text>
-          <Text style={s.engineLine}>🔬 Real-ESRGAN — 4× resolution upscale</Text>
+          <View style={s.engineTitleRow}><Ionicons name="hardware-chip-outline" size={17} color={colors.goldBright} /><Text style={s.engineTitle}>Engine Stack</Text></View>
+          <View style={s.engineLineRow}><Ionicons name="scan-outline" size={15} color={colors.cyanPrimary} /><Text style={s.engineLine}>InsightFace — face detection & landmark</Text></View>
+          <View style={s.engineLineRow}><Ionicons name="swap-horizontal-outline" size={15} color={colors.cyanPrimary} /><Text style={s.engineLine}>InSwapper_128 — neural face swap</Text></View>
+          <View style={s.engineLineRow}><Ionicons name="sparkles-outline" size={15} color={colors.goldBright} /><Text style={s.engineLine}>GFPGAN — face restoration & detail</Text></View>
+          <View style={s.engineLineRow}><Ionicons name="expand-outline" size={15} color={colors.cyanPrimary} /><Text style={s.engineLine}>Real-ESRGAN — 4× resolution upscale</Text></View>
         </View>
 
         <View style={s.tipCard}>
-          <Text style={s.tipTitle}>📸 Best results tips:</Text>
+          <View style={s.engineTitleRow}><Ionicons name="bulb-outline" size={17} color={colors.goldBright} /><Text style={s.tipTitle}>Best results tips:</Text></View>
           <Text style={s.tipText}>• முகம் clearly தெரியும் front-facing photos</Text>
           <Text style={s.tipText}>• High resolution, bright, blur இல்லாத photos</Text>
           <Text style={s.tipText}>• Glasses, mask இல்லாமல் clear face</Text>
@@ -549,14 +569,14 @@ export default function FaceSwapScreen() {
 
         <View style={s.toggleCard}>
           <View style={{ flex: 1 }}>
-            <Text style={s.toggleLabel}>✨ GFPGAN + Real-ESRGAN Enhancement</Text>
+            <View style={s.engineTitleRow}><Ionicons name="sparkles-outline" size={16} color={colors.goldBright} /><Text style={s.toggleLabel}>GFPGAN + Real-ESRGAN Enhancement</Text></View>
             <Text style={s.toggleSub}>Face restore + 4× upscale (slower but higher quality)</Text>
           </View>
           <Switch
             value={enhanceEnabled}
             onValueChange={setEnhanceEnabled}
-            trackColor={{ false: '#333', true: '#7c3aed' }}
-            thumbColor={enhanceEnabled ? '#fff' : '#888'}
+            trackColor={{ false: colors.buttonSecondary, true: colors.cyanPrimary }}
+            thumbColor={enhanceEnabled ? colors.textPrimary : colors.textMuted}
           />
         </View>
 
@@ -568,11 +588,11 @@ export default function FaceSwapScreen() {
             {targetUri
               ? <Image source={{ uri: targetUri }} style={s.pickedImg} />
               : <View style={s.pickerPlaceholder}>
-                  <Text style={s.pickerIcon}>🖼️</Text>
+                  <Ionicons name="image-outline" size={44} color={colors.cyanPrimary} />
                   <Text style={s.pickerHint}>Upload Target Image</Text>
                   <Text style={s.pickerSub}>Body + background இந்த photo-ல் இருக்கும்</Text>
                 </View>}
-            {targetUri ? <View style={s.changeBadge}><Text style={s.changeTxt}>Change ✏️</Text></View> : null}
+            {targetUri ? <View style={s.changeBadge}><View style={s.engineTitleRow}><Ionicons name="create-outline" size={14} color={colors.textPrimary} /><Text style={s.changeTxt}>Change</Text></View></View> : null}
           </TouchableOpacity>
         </View>
 
@@ -584,11 +604,11 @@ export default function FaceSwapScreen() {
             {faceUri
               ? <Image source={{ uri: faceUri }} style={s.pickedImg} />
               : <View style={s.pickerPlaceholder}>
-                  <Text style={s.pickerIcon}>🤳</Text>
+                  <Ionicons name="person-circle-outline" size={44} color={colors.goldBright} />
                   <Text style={s.pickerHint}>Upload Face Photo</Text>
                   <Text style={s.pickerSub}>இந்த person-ஓட முகம் target-ல் வரும்</Text>
                 </View>}
-            {faceUri ? <View style={s.changeBadge}><Text style={s.changeTxt}>Change ✏️</Text></View> : null}
+            {faceUri ? <View style={s.changeBadge}><View style={s.engineTitleRow}><Ionicons name="create-outline" size={14} color={colors.textPrimary} /><Text style={s.changeTxt}>Change</Text></View></View> : null}
           </TouchableOpacity>
         </View>
 
@@ -604,8 +624,8 @@ export default function FaceSwapScreen() {
           disabled={!targetB64 || !faceB64 || loading}
         >
           {loading
-            ? <ActivityIndicator color="#fff" size="small" />
-            : <Text style={s.swapBtnTxt}>✨ Swap Face ›</Text>}
+            ? <ActivityIndicator color={colors.textOnGold} size="small" />
+            : <View style={s.engineTitleRow}><Ionicons name="swap-horizontal-outline" size={19} color={colors.textOnGold} /><Text style={s.swapBtnTxt}>Swap Face</Text></View>}
         </TouchableOpacity>
 
         {loading ? (
@@ -617,7 +637,7 @@ export default function FaceSwapScreen() {
         {/* HF Failed → Vidmage fallback card */}
         {!loading && statusMsg === 'hf_failed' ? (
           <View style={s.vidmageCard}>
-            <Text style={s.vidmageTitle}>⚠️ AI Models இப்போது Busy</Text>
+            <View style={s.engineTitleRow}><Ionicons name="warning-outline" size={18} color={colors.warning} /><Text style={s.vidmageTitle}>AI Models இப்போது Busy</Text></View>
             <Text style={s.vidmageDesc}>
               HuggingFace free models இப்போது respond ஆகவில்லை.{' '}கீழே உள்ள vidmage.ai-ல் free-ஆக face swap பண்ணலாம்!
             </Text>
@@ -625,7 +645,7 @@ export default function FaceSwapScreen() {
               style={s.vidmageBtn}
               onPress={() => Linking.openURL('https://vidmage.ai/face-swap')}
             >
-              <Text style={s.vidmageBtnTxt}>🌐 vidmage.ai-ல் Try பண்ணுங்க →</Text>
+              <View style={s.engineTitleRow}><Ionicons name="open-outline" size={16} color={colors.textOnGold} /><Text style={s.vidmageBtnTxt}>vidmage.ai-ல் Try பண்ணுங்க</Text></View>
             </TouchableOpacity>
             <Text style={s.vidmageSub}>
               Free · No signup · Browser-ல் open ஆகும்
@@ -634,7 +654,7 @@ export default function FaceSwapScreen() {
               style={s.retryBtn}
               onPress={() => { setStatusMsg(''); startSwap(); }}
             >
-              <Text style={s.retryBtnTxt}>🔄 மீண்டும் Try</Text>
+              <View style={s.engineTitleRow}><Ionicons name="refresh-outline" size={16} color={colors.textCyan} /><Text style={s.retryBtnTxt}>மீண்டும் Try</Text></View>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -642,15 +662,15 @@ export default function FaceSwapScreen() {
         {/* Result */}
         {resultUrl ? (
           <View style={s.resultCard}>
-            <Text style={s.resultTitle}>✅ Face Swap Complete!</Text>
+            <View style={s.engineTitleRow}><Ionicons name="checkmark-circle-outline" size={18} color={colors.success} /><Text style={s.resultTitle}>Face Swap Complete!</Text></View>
             {usedModel ? (
               <View style={s.modelBadge}>
-                <Text style={s.modelBadgeTxt}>🤖 {usedModel}</Text>
+                <View style={s.engineTitleRow}><Ionicons name="hardware-chip-outline" size={14} color={colors.goldBright} /><Text style={s.modelBadgeTxt}>{usedModel}</Text></View>
               </View>
             ) : null}
             <Image source={{ uri: resultUrl }} style={s.resultImg} resizeMode="contain" />
             <TouchableOpacity style={s.saveBtn} onPress={saveResult}>
-              <Text style={s.saveBtnTxt}>⬇ Gallery-ல Save</Text>
+              <View style={s.engineTitleRow}><Ionicons name="download-outline" size={17} color={colors.textOnCyan} /><Text style={s.saveBtnTxt}>Gallery-ல Save</Text></View>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -660,13 +680,13 @@ export default function FaceSwapScreen() {
           style={s.altLink}
           onPress={() => Linking.openURL('https://vidmage.ai/face-swap')}
         >
-          <Text style={s.altLinkTxtBlue}>🌐 Alternative: vidmage.ai Face Swap (browser)</Text>
+          <View style={s.engineTitleRow}><Ionicons name="open-outline" size={14} color={colors.textCyan} /><Text style={s.altLinkTxtBlue}>Alternative: vidmage.ai Face Swap (browser)</Text></View>
         </TouchableOpacity>
         <TouchableOpacity
           style={s.altLink}
           onPress={() => Linking.openURL('https://remaker.ai/features/batche-face-swap/')}
         >
-          <Text style={s.altLinkTxtGreen}>🌐 Alternative: remaker.ai Batch Face Swap (browser)</Text>
+          <View style={s.engineTitleRow}><Ionicons name="open-outline" size={14} color={colors.textCyan} /><Text style={s.altLinkTxtGreen}>Alternative: remaker.ai Batch Face Swap (browser)</Text></View>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
@@ -675,53 +695,56 @@ export default function FaceSwapScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0f0f1a' },
+const createStyles = (colors: ReturnType<typeof useColors>) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bgPrimary },
   scroll: { padding: 20 },
-  title: { fontSize: 26, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 4 },
-  sub: { fontSize: 11, color: '#7c3aed', textAlign: 'center', marginBottom: 16, fontWeight: '700', letterSpacing: 0.5 },
-  engineCard: { backgroundColor: '#1a1232', borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: '#7c3aed55' },
-  engineTitle: { color: '#a78bfa', fontSize: 13, fontWeight: '800', marginBottom: 8 },
-  engineLine: { color: '#ccc', fontSize: 12, marginBottom: 3 },
-  tipCard: { backgroundColor: '#1a2a1a', borderRadius: 12, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: '#4ade8044' },
-  tipTitle: { color: '#4ade80', fontSize: 13, fontWeight: '700', marginBottom: 6 },
-  tipText: { color: '#aaa', fontSize: 12, marginBottom: 2 },
-  toggleCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a2e', borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: '#7c3aed44', gap: 12 },
-  toggleLabel: { color: '#e0d4ff', fontSize: 13, fontWeight: '700', marginBottom: 3 },
-  toggleSub: { color: '#888', fontSize: 11 },
-  card: { backgroundColor: '#1a1a2e', borderRadius: 16, padding: 16, marginBottom: 16, position: 'relative' },
-  badge: { position: 'absolute', top: -12, left: 16, backgroundColor: '#7c3aed', borderRadius: 14, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
-  badgeNum: { color: '#fff', fontWeight: '900', fontSize: 14 },
-  cardLabel: { color: '#aaa', fontSize: 13, marginBottom: 10, marginTop: 4 },
-  picker: { height: 200, borderRadius: 12, overflow: 'hidden', backgroundColor: '#0f0f1a', borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#444' },
-  pickerFilled: { borderStyle: 'solid', borderColor: '#7c3aed' },
+  screenTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 4 },
+  title: { fontSize: 26, fontWeight: '800', color: colors.textPrimary, textAlign: 'center' },
+  sub: { fontSize: 11, color: colors.textCyan, textAlign: 'center', marginBottom: 16, fontWeight: '700', letterSpacing: 0.5 },
+  engineCard: { backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.borderGold },
+  engineTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  engineLineRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 6 },
+  engineTitle: { color: colors.goldBright, fontSize: 13, fontWeight: '800', marginBottom: 8 },
+  engineLine: { color: colors.textSecondary, fontSize: 12, flex: 1, marginBottom: 3 },
+  tipCard: { backgroundColor: colors.cardSecondary, borderRadius: 12, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.borderCyan },
+  tipTitle: { color: colors.textCyan, fontSize: 13, fontWeight: '700', marginBottom: 6 },
+  tipText: { color: colors.textSecondary, fontSize: 12, marginBottom: 2 },
+  toggleCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: colors.borderCyan, gap: 12 },
+  toggleLabel: { color: colors.textPrimary, fontSize: 13, fontWeight: '700', marginBottom: 3 },
+  toggleSub: { color: colors.textTertiary, fontSize: 11 },
+  card: { backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 16, position: 'relative', borderWidth: 1, borderColor: colors.border },
+  badge: { position: 'absolute', top: -12, left: 16, backgroundColor: colors.goldPrimary, borderRadius: 14, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  badgeNum: { color: colors.textOnGold, fontWeight: '900', fontSize: 14 },
+  cardLabel: { color: colors.textSecondary, fontSize: 13, marginBottom: 10, marginTop: 4 },
+  picker: { height: 200, borderRadius: 12, overflow: 'hidden', backgroundColor: colors.bgTertiary, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.cyanBorder },
+  pickerFilled: { borderStyle: 'solid', borderColor: colors.goldBorder },
   pickerPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6 },
   pickerIcon: { fontSize: 44 },
-  pickerHint: { color: '#999', fontSize: 15, fontWeight: '700' },
-  pickerSub: { color: '#555', fontSize: 11 },
+  pickerHint: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
+  pickerSub: { color: colors.textTertiary, fontSize: 11 },
   pickedImg: { width: '100%', height: '100%', resizeMode: 'cover' },
-  changeBadge: { position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(124,58,237,0.9)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
-  changeTxt: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  swapBtn: { backgroundColor: '#7c3aed', borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginTop: 4, elevation: 6, shadowColor: '#7c3aed', shadowOpacity: 0.5, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
-  swapBtnOff: { backgroundColor: '#2a2a3a', elevation: 0, shadowOpacity: 0 },
-  swapBtnTxt: { color: '#fff', fontSize: 17, fontWeight: '800' },
-  waitTxt: { color: '#666', fontSize: 12, textAlign: 'center', marginTop: 10 },
-  resultCard: { backgroundColor: '#1a1a2e', borderRadius: 16, padding: 16, marginTop: 20 },
-  resultTitle: { color: '#4ade80', fontSize: 16, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
-  modelBadge: { backgroundColor: '#1a1232', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, alignSelf: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#7c3aed55' },
-  modelBadgeTxt: { color: '#a78bfa', fontSize: 10, fontWeight: '700' },
-  resultImg: { width: '100%', height: width - 40, borderRadius: 12, backgroundColor: '#0f0f1a' },
-  saveBtn: { backgroundColor: '#1d4ed8', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 12 },
-  saveBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  vidmageCard: { backgroundColor: '#1a1010', borderRadius: 16, padding: 18, marginTop: 16, borderWidth: 1.5, borderColor: '#f59e0b88' },
-  vidmageTitle: { color: '#f59e0b', fontSize: 15, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
-  vidmageDesc: { color: '#ccc', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 14 },
-  vidmageBtn: { backgroundColor: '#f59e0b', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginBottom: 8, elevation: 4, shadowColor: '#f59e0b', shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
-  vidmageBtnTxt: { color: '#000', fontSize: 15, fontWeight: '900' },
-  vidmageSub: { color: '#888', fontSize: 11, textAlign: 'center', marginBottom: 12 },
-  retryBtn: { backgroundColor: '#1a1a2e', borderRadius: 10, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: '#7c3aed44' },
-  retryBtnTxt: { color: '#a78bfa', fontSize: 13, fontWeight: '700' },
+  changeBadge: { position: 'absolute', bottom: 8, right: 8, backgroundColor: colors.buttonCyan, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
+  changeTxt: { color: colors.textOnCyan, fontSize: 11, fontWeight: '700' },
+  swapBtn: { backgroundColor: colors.buttonGold, borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginTop: 4, elevation: 4, shadowColor: colors.goldPrimary, shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
+  swapBtnOff: { backgroundColor: colors.buttonDisabled, elevation: 0, shadowOpacity: 0 },
+  swapBtnTxt: { color: colors.textOnGold, fontSize: 17, fontWeight: '800' },
+  waitTxt: { color: colors.textTertiary, fontSize: 12, textAlign: 'center', marginTop: 10 },
+  resultCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, marginTop: 20, borderWidth: 1, borderColor: colors.borderGold },
+  resultTitle: { color: colors.success, fontSize: 16, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
+  modelBadge: { backgroundColor: colors.cardSecondary, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, alignSelf: 'center', marginBottom: 10, borderWidth: 1, borderColor: colors.borderCyan },
+  modelBadgeTxt: { color: colors.goldBright, fontSize: 10, fontWeight: '700' },
+  resultImg: { width: '100%', height: width - 40, borderRadius: 12, backgroundColor: colors.bgDeep },
+  saveBtn: { backgroundColor: colors.buttonCyan, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 12 },
+  saveBtnTxt: { color: colors.textOnCyan, fontSize: 14, fontWeight: '700' },
+  vidmageCard: { backgroundColor: colors.bgTertiary, borderRadius: 16, padding: 18, marginTop: 16, borderWidth: 1, borderColor: colors.warning },
+  vidmageTitle: { color: colors.warning, fontSize: 15, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
+  vidmageDesc: { color: colors.textSecondary, fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 14 },
+  vidmageBtn: { backgroundColor: colors.buttonGold, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginBottom: 8, elevation: 3, shadowColor: colors.goldPrimary, shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+  vidmageBtnTxt: { color: colors.textOnGold, fontSize: 15, fontWeight: '900' },
+  vidmageSub: { color: colors.textTertiary, fontSize: 11, textAlign: 'center', marginBottom: 12 },
+  retryBtn: { backgroundColor: colors.cardSecondary, borderRadius: 10, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: colors.borderCyan },
+  retryBtnTxt: { color: colors.textCyan, fontSize: 13, fontWeight: '700' },
   altLink: { marginTop: 16, paddingVertical: 10, alignItems: 'center' },
-  altLinkTxtBlue: { color: '#3b82f6', fontSize: 12, textDecorationLine: 'underline' },
-  altLinkTxtGreen: { color: '#22c55e', fontSize: 12, textDecorationLine: 'underline' },
+  altLinkTxtBlue: { color: colors.textCyan, fontSize: 12, textDecorationLine: 'underline' },
+  altLinkTxtGreen: { color: colors.success, fontSize: 12, textDecorationLine: 'underline' },
 });

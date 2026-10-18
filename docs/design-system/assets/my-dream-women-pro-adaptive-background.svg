@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+  <defs>
+    <linearGradient id="obsidian" x1="155" y1="70" x2="870" y2="966" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#192327"/>
+      <stop offset=".5" stop-color="#0B1012"/>
+      <stop offset="1" stop-color="#050708"/>
+    </linearGradient>
+    <radialGradient id="cyan-aura" cx="0" cy="0" r="1" gradientTransform="matrix(0 504 -504 0 512 448)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#55DDF5" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#55DDF5" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#obsidian)"/>
+  <rect width="1024" height="1024" fill="url(#cyan-aura)"/>
+  <path d="M0 766c185-100 333-125 512-57s327 44 512-57" stroke="#D4AF6A" stroke-opacity=".16" stroke-width="3"/>
+  <path d="M0 820c185-100 333-125 512-57s327 44 512-57" stroke="#55DDF5" stroke-opacity=".12" stroke-width="2"/>
+</svg>
