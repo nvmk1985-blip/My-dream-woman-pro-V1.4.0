@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+  <defs>
+    <linearGradient id="royal-gold" x1="300" y1="318" x2="722" y2="708" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE8B0"/>
+      <stop offset=".42" stop-color="#D4AF6A"/>
+      <stop offset=".78" stop-color="#F4D58D"/>
+      <stop offset="1" stop-color="#9B773A"/>
+    </linearGradient>
+    <linearGradient id="cyan-line" x1="322" y1="500" x2="702" y2="532" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#168FA8"/>
+      <stop offset=".5" stop-color="#80EEFF"/>
+      <stop offset="1" stop-color="#55DDF5"/>
+    </linearGradient>
+  </defs>
+  <circle cx="512" cy="512" r="226" stroke="url(#royal-gold)" stroke-width="13"/>
+  <circle cx="512" cy="512" r="206" stroke="url(#cyan-line)" stroke-opacity=".76" stroke-width="4"/>
+  <path d="M512 680c-18-14-45-35-76-62-70-61-116-116-116-195 0-65 44-111 105-111 43 0 73 25 87 72 14-47 44-72 87-72 61 0 105 46 105 111 0 79-46 134-116 195-31 27-58 48-76 62Z" fill="url(#royal-gold)"/>
+  <path d="M512 630c-15-12-34-27-54-45-46-41-78-77-78-130 0-43 27-73 65-73 29 0 52 20 67 54 15-34 38-54 67-54 38 0 65 30 65 73 0 53-32 89-78 130-20 18-39 33-54 45Z" fill="#101416"/>
+  <path d="M512 583c-14-11-27-22-41-34-25-23-41-42-41-68 0-19 12-32 29-32 21 0 37 18 53 47 16-29 32-47 53-47 17 0 29 13 29 32 0 26-16 45-41 68-14 12-27 23-41 34Z" fill="url(#royal-gold)"/>
+  <path d="M512 547c-9-12-20-24-31-33" stroke="url(#cyan-line)" stroke-width="7" stroke-linecap="round"/>
+  <path d="M685 324l9 21 21 9-21 9-9 21-9-21-21-9 21-9 9-21Z" fill="#80EEFF"/>
+</svg>

@@ -10,7 +10,11 @@ import * as DocumentPicker from 'expo-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { uploadUriToCloudinary, getPhotoStyles, createPhotoStyle, deletePhotoStyle, type PhotoStyleRecord, type GlobalStyleEntry } from '../services/api';
 import { ALL_PERSONAS } from '../constants/personas';
+import { Ionicons } from '@expo/vector-icons';
+import themeTokens from '../constants/colors';
+import { useColors } from '../hooks/useColors';
 
+const C = themeTokens.dark;
 const APP_VERSION = '1.2.0';
 const LATEST_APK_URL = 'https://github.com/nvmk1985-blip/My-Dream-Women/releases/latest';
 const API_BASE = '';
@@ -42,6 +46,7 @@ const BUILTIN_PHOTO_STYLES: GlobalStyleEntry[] = [
 ];
 
 export default function SettingsScreen() {
+  const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [checking, setChecking] = useState(false);
@@ -477,43 +482,46 @@ export default function SettingsScreen() {
 
   const getBuildStatusColor = () => {
     switch (buildStatus) {
-      case 'triggering': return '#f59e0b';
-      case 'queued': return '#3b82f6';
-      case 'in_progress': return '#8b5cf6';
-      case 'success': return '#10b981';
-      case 'failure': return '#ef4444';
-      default: return '#6b7280';
+      case 'triggering': return colors.warning;
+      case 'queued': return colors.info;
+      case 'in_progress': return colors.cyanPrimary;
+      case 'success': return colors.success;
+      case 'failure': return colors.error;
+      default: return colors.textMuted;
     }
   };
 
   const getBuildStatusIcon = () => {
     switch (buildStatus) {
-      case 'triggering': return '⚡';
-      case 'queued': return '⏳';
-      case 'in_progress': return '🔨';
-      case 'success': return '✅';
-      case 'failure': return '❌';
-      default: return '🚀';
+      case 'triggering': return 'flash-outline';
+      case 'queued': return 'time-outline';
+      case 'in_progress': return 'hammer-outline';
+      case 'success': return 'checkmark-circle-outline';
+      case 'failure': return 'close-circle-outline';
+      default: return 'rocket-outline';
     }
   };
 
   return (
     <SafeAreaView style={s.safe} edges={['left','right','bottom']}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <StatusBar translucent backgroundColor={C.bgPrimary} barStyle="light-content" />
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* HuggingFace Token Modal */}
       <Modal visible={showHfModal} transparent animationType="slide" onRequestClose={() => setShowHfModal(false)}>
         <View style={s.keyModalOverlay}>
           <View style={s.keyModalBox}>
-            <Text style={s.keyModalTitle}>🤗 HuggingFace Token</Text>
+            <View style={s.modalTitleRow}>
+              <Ionicons name="cube-outline" size={20} color={colors.cyanPrimary} />
+              <Text style={s.keyModalTitle}>HuggingFace Token</Text>
+            </View>
             <Text style={s.keyModalDesc}>
               huggingface.co → Profile → Settings → Access Tokens → New Token (read role) → copy பண்ணு
             </Text>
             <TextInput
               style={s.keyModalInput}
               placeholder="hf_xxxxxxxxxxxxxxxxxxxx"
-              placeholderTextColor="#555"
+              placeholderTextColor={colors.inputPlaceholder}
               value={hfTokenInput}
               onChangeText={setHfTokenInput}
               autoCapitalize="none"
@@ -531,8 +539,8 @@ export default function SettingsScreen() {
                 disabled={savingHf}
               >
                 {savingHf
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={s.keyModalSaveTxt}>💾 Save</Text>}
+                  ? <ActivityIndicator color={colors.textPrimary} size="small" />
+                  : <View style={s.buttonLabelRow}><Ionicons name="save-outline" size={16} color={colors.textOnGold} /><Text style={s.keyModalSaveTxt}>Save</Text></View>}
               </TouchableOpacity>
             </View>
           </View>
@@ -543,7 +551,10 @@ export default function SettingsScreen() {
       <Modal visible={showKeyModal} transparent animationType="slide" onRequestClose={() => setShowKeyModal(false)}>
         <View style={s.keyModalOverlay}>
           <View style={s.keyModalBox}>
-            <Text style={s.keyModalTitle}>🔑 GitHub Token தேவை</Text>
+            <View style={s.modalTitleRow}>
+              <Ionicons name="logo-github" size={20} color={colors.goldPrimary} />
+              <Text style={s.keyModalTitle}>GitHub Token தேவை</Text>
+            </View>
             <Text style={s.keyModalDesc}>
               Build trigger பண்ண GitHub Personal Access Token வேணும்.{'\n'}
               github.com → Settings → Developer settings → Personal access tokens → repo scope
@@ -551,7 +562,7 @@ export default function SettingsScreen() {
             <TextInput
               style={s.keyModalInput}
               placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-              placeholderTextColor="#555"
+              placeholderTextColor={colors.inputPlaceholder}
               value={keyInputVal}
               onChangeText={setKeyInputVal}
               autoCapitalize="none"
@@ -569,8 +580,8 @@ export default function SettingsScreen() {
                 disabled={savingKey}
               >
                 {savingKey
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={s.keyModalSaveTxt}>💾 Save & Build</Text>}
+                  ? <ActivityIndicator color={colors.textPrimary} size="small" />
+                  : <View style={s.buttonLabelRow}><Ionicons name="hammer-outline" size={16} color={colors.textOnGold} /><Text style={s.keyModalSaveTxt}>Save & Build</Text></View>}
               </TouchableOpacity>
             </View>
           </View>
@@ -579,9 +590,9 @@ export default function SettingsScreen() {
 
       <View style={[s.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={s.headerBack}>←</Text>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} style={s.headerBack} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>⚙️ Settings</Text>
+        <Text style={s.headerTitle}>Settings</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -590,7 +601,7 @@ export default function SettingsScreen() {
 
         <View style={s.card}>
           <View style={s.cardHeader}>
-            <Text style={s.cardIcon}>🔄</Text>
+            <Ionicons name="refresh-outline" size={20} color={colors.cyanPrimary} style={s.cardIcon} />
             <Text style={s.cardTitle}>App Update</Text>
           </View>
           <Text style={s.cardDesc}>
@@ -602,21 +613,21 @@ export default function SettingsScreen() {
             disabled={checking}
           >
             {checking
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={s.updateBtnTxt}>🔍 Update Check பண்ணு</Text>
+              ? <ActivityIndicator color={colors.textOnGold} size="small" />
+              : <View style={s.buttonLabelRow}><Ionicons name="search-outline" size={16} color={colors.textOnGold} /><Text style={s.updateBtnTxt}>Update Check பண்ணு</Text></View>
             }
           </TouchableOpacity>
           {checkMsg ? <Text style={s.checkMsg}>{checkMsg}</Text> : null}
           {!checking && (
             <TouchableOpacity style={s.downloadLink} onPress={() => Linking.openURL(LATEST_APK_URL)}>
-              <Text style={s.downloadLinkTxt}>⬇️ Latest APK Download</Text>
+              <View style={s.buttonLabelRow}><Ionicons name="download-outline" size={16} color={colors.textOnCyan} /><Text style={s.downloadLinkTxt}>Latest APK Download</Text></View>
             </TouchableOpacity>
           )}
         </View>
 
         <View style={s.card}>
           <View style={s.cardHeader}>
-            <Text style={s.cardIcon}>ℹ️</Text>
+            <Ionicons name="information-circle-outline" size={20} color={colors.cyanPrimary} style={s.cardIcon} />
             <Text style={s.cardTitle}>App Info</Text>
           </View>
           {[
@@ -638,21 +649,21 @@ export default function SettingsScreen() {
 
         <View style={s.card}>
           <View style={s.cardHeader}>
-            <Text style={s.cardIcon}>🛡️</Text>
+            <Ionicons name="shield-checkmark-outline" size={20} color={colors.goldPrimary} style={s.cardIcon} />
             <Text style={s.cardTitle}>Google Play Protect</Text>
           </View>
           <Text style={s.cardDesc}>
             உங்கள் phone-ன் Google Play Protect பாதுகாப்பு settings-ஐ திறந்து app scan செய்யலாம்.
           </Text>
           <TouchableOpacity style={s.playProtectBtn} onPress={openPlayProtect}>
-            <Text style={s.playProtectBtnTxt}>🛡️ Play Protect திறக்கவும்</Text>
+            <View style={s.buttonLabelRow}><Ionicons name="shield-checkmark-outline" size={16} color={colors.textOnCyan} /><Text style={s.playProtectBtnTxt}>Play Protect திறக்கவும்</Text></View>
           </TouchableOpacity>
         </View>
 
         {/* App Icon மாத்து + Auto Build Trigger */}
         <View style={s.card}>
           <View style={s.cardHeader}>
-            <Text style={s.cardIcon}>🎯</Text>
+            <Ionicons name="color-palette-outline" size={20} color={colors.goldPrimary} style={s.cardIcon} />
             <Text style={s.cardTitle}>App Icon மாத்து</Text>
           </View>
           <Text style={s.cardDesc}>
@@ -663,7 +674,7 @@ export default function SettingsScreen() {
             <View style={s.iconPreviewRow}>
               <Image source={{ uri: appIconUri }} style={s.iconPreview} />
               <View style={s.iconPreviewInfo}>
-                <Text style={s.iconPreviewTitle}>✅ Upload ஆச்சு!</Text>
+                <Text style={s.iconPreviewTitle}>Upload ஆச்சு!</Text>
                 <Text style={s.iconPreviewHint}>Build trigger ஆகுது...</Text>
               </View>
             </View>
@@ -675,8 +686,8 @@ export default function SettingsScreen() {
             disabled={uploadingAppIcon || buildStatus === 'in_progress'}
           >
             {uploadingAppIcon
-              ? <><ActivityIndicator color="#fff" size="small" /><Text style={s.iconBtnTxt}> Uploading...</Text></>
-              : <Text style={s.iconBtnTxt}>📁 {appIconUri ? 'வேற Icon Upload பண்ணு' : 'File Manager-ல் இருந்து Icon Select பண்ணு'}</Text>
+              ? <><ActivityIndicator color={colors.textPrimary} size="small" /><Text style={s.iconBtnTxt}> Uploading...</Text></>
+              : <View style={s.buttonLabelRow}><Ionicons name="folder-open-outline" size={17} color={colors.textOnGold} /><Text style={s.iconBtnTxt}>{appIconUri ? 'வேற Icon Upload பண்ணு' : 'File Manager-ல் இருந்து Icon Select பண்ணு'}</Text></View>
             }
           </TouchableOpacity>
 
@@ -686,7 +697,7 @@ export default function SettingsScreen() {
               style={s.latestApkBanner}
               onPress={() => Linking.openURL((latestApkUrl || apkUrl)!)}
             >
-              <Text style={s.latestApkBannerTitle}>⬇️ Latest APK Ready!</Text>
+              <View style={s.buttonLabelRow}><Ionicons name="download-outline" size={18} color={colors.goldBright} /><Text style={s.latestApkBannerTitle}>Latest APK Ready!</Text></View>
               <Text style={s.latestApkBannerSub} numberOfLines={1}>{latestApkUrl || apkUrl}</Text>
               <Text style={s.latestApkBannerBtn}>Download Now</Text>
             </TouchableOpacity>
@@ -696,7 +707,7 @@ export default function SettingsScreen() {
           {buildStatus !== 'idle' && (
             <View style={[s.buildStatusBox, { borderColor: getBuildStatusColor() }]}>
               <View style={s.buildStatusHeader}>
-                <Text style={s.buildStatusIcon}>{getBuildStatusIcon()}</Text>
+                <Ionicons name={getBuildStatusIcon() as React.ComponentProps<typeof Ionicons>['name']} size={20} color={getBuildStatusColor()} style={s.buildStatusIcon} />
                 <Text style={[s.buildStatusTitle, { color: getBuildStatusColor() }]}>
                   Build Status
                 </Text>
@@ -711,7 +722,7 @@ export default function SettingsScreen() {
                   style={s.viewLogsBtn}
                   onPress={() => Linking.openURL(`https://github.com/${GITHUB_REPO}/actions/runs/${buildRunId}`)}
                 >
-                  <Text style={s.viewLogsTxt}>📋 Live Logs பார்க்க</Text>
+                  <View style={s.buttonLabelRow}><Ionicons name="document-text-outline" size={16} color={colors.textSecondary} /><Text style={s.viewLogsTxt}>Live Logs பார்க்க</Text></View>
                 </TouchableOpacity>
               )}
 
@@ -720,7 +731,7 @@ export default function SettingsScreen() {
                   style={s.downloadApkBtn}
                   onPress={() => Linking.openURL(apkUrl)}
                 >
-                  <Text style={s.downloadApkTxt}>⬇️ புது APK Download பண்ணு</Text>
+                  <View style={s.buttonLabelRow}><Ionicons name="download-outline" size={17} color={colors.textOnGold} /><Text style={s.downloadApkTxt}>புது APK Download பண்ணு</Text></View>
                 </TouchableOpacity>
               )}
 
@@ -729,7 +740,7 @@ export default function SettingsScreen() {
                   style={s.retryBtn}
                   onPress={triggerGithubBuild}
                 >
-                  <Text style={s.retryTxt}>🔄 மீண்டும் try பண்ணு</Text>
+                  <View style={s.buttonLabelRow}><Ionicons name="refresh-outline" size={16} color={colors.error} /><Text style={s.retryTxt}>மீண்டும் try பண்ணு</Text></View>
                 </TouchableOpacity>
               )}
             </View>
@@ -738,7 +749,7 @@ export default function SettingsScreen() {
           {/* Manual trigger button - build idle ஆனாலும் use பண்ணலாம் */}
           {buildStatus === 'idle' && (
             <TouchableOpacity style={s.manualTriggerBtn} onPress={triggerGithubBuild}>
-              <Text style={s.manualTriggerTxt}>🚀 Build Trigger பண்ணு (icon upload இல்லாமல்)</Text>
+              <View style={s.buttonLabelRow}><Ionicons name="rocket-outline" size={16} color={colors.cyanBright} /><Text style={s.manualTriggerTxt}>Build Trigger பண்ணு (icon upload இல்லாமல்)</Text></View>
             </TouchableOpacity>
           )}
 
@@ -751,17 +762,17 @@ export default function SettingsScreen() {
         </View>
 
         <TouchableOpacity style={s.keysBtn} onPress={() => router.push('/keys')}>
-          <Text style={s.keysBtnTxt}>🔑 Keys & Accounts</Text>
+          <View style={s.buttonLabelRow}><Ionicons name="key-outline" size={18} color={colors.textOnGold} /><Text style={s.keysBtnTxt}>Keys & Accounts</Text></View>
         </TouchableOpacity>
 
         <View style={s.card}>
           <View style={s.cardHeader}>
-            <Text style={s.cardIcon}>🌐</Text>
+            <Ionicons name="globe-outline" size={20} color={colors.cyanPrimary} style={s.cardIcon} />
             <Text style={s.cardTitle}>Custom Server URL</Text>
           </View>
           <Text style={s.cardDesc}>Render server sleep ஆனா இந்த option-ல் வேற server URL set பண்ணலாம். Empty விட்டா default Render server use ஆகும்.</Text>
-          <Text style={{ color: '#8b949e', fontSize: 11, marginBottom: 10 }}>
-            இந்த APK-ல் built-in URL: <Text style={{ color: '#58a6ff' }}>{DEFAULT_SERVER}</Text>
+          <Text style={{ color: colors.textTertiary, fontSize: 11, marginBottom: 10 }}>
+            இந்த APK-ல் built-in URL: <Text style={{ color: colors.textCyan }}>{DEFAULT_SERVER}</Text>
           </Text>
           <TouchableOpacity
             style={[s.wakeBtn, wakingServer && { opacity: 0.6 }]}
@@ -769,50 +780,51 @@ export default function SettingsScreen() {
             disabled={wakingServer}
           >
             {wakingServer
-              ? <><ActivityIndicator color="#fff" size="small" /><Text style={s.wakeBtnTxt}>  Waking up server...</Text></>
-              : <Text style={s.wakeBtnTxt}>
-                  {serverStatus === 'ok' ? '✅ Server Online — Ping Again' : '🔄 Render Server Wake பண்ணு'}
-                </Text>
+              ? <><ActivityIndicator color={colors.textPrimary} size="small" /><Text style={s.wakeBtnTxt}>  Waking up server...</Text></>
+              : <View style={s.buttonLabelRow}>
+                  <Ionicons name={serverStatus === 'ok' ? 'checkmark-circle-outline' : 'refresh-outline'} size={17} color={colors.textOnCyan} />
+                  <Text style={s.wakeBtnTxt}>{serverStatus === 'ok' ? 'Server Online — Ping Again' : 'Render Server Wake பண்ணு'}</Text>
+                </View>
             }
           </TouchableOpacity>
           {serverStatus === 'sleeping' && (
             <View style={s.serverOfflineBadge}>
-              <Text style={s.serverOfflineTxt}>⚠️ Server connect ஆகல — 30-60s wait பண்ணி retry பண்ணுங்க</Text>
+              <Text style={s.serverOfflineTxt}>Server connect ஆகல — 30-60s wait பண்ணி retry பண்ணுங்க</Text>
             </View>
           )}
           {serverStatus === 'ok' && (
-            <View style={[s.serverOfflineBadge, { backgroundColor: '#0d2818', borderColor: '#238636' }]}>
-              <Text style={[s.serverOfflineTxt, { color: '#3fb950' }]}>✅ Render server online — messages அனுப்பலாம்!</Text>
+            <View style={[s.serverOfflineBadge, { backgroundColor: C.bgSecondary, borderColor: C.success }]}>
+              <Text style={[s.serverOfflineTxt, { color: C.success }]}>Render server online — messages அனுப்பலாம்!</Text>
             </View>
           )}
           <TextInput
-            style={{ backgroundColor: '#0d1117', color: '#e6edf3', borderRadius: 8, borderWidth: 1, borderColor: '#30363d', padding: 10, fontSize: 13, marginBottom: 10 }}
+            style={s.serverUrlInput}
             value={customServerUrl}
             onChangeText={setCustomServerUrl}
             placeholder='https://your-server.onrender.com'
-            placeholderTextColor='#555'
+            placeholderTextColor={colors.inputPlaceholder}
             autoCapitalize='none'
             autoCorrect={false}
           />
           <TouchableOpacity
-            style={{ backgroundColor: savingServer ? '#555' : '#238636', borderRadius: 8, paddingVertical: 11, alignItems: 'center' }}
+            style={[s.serverSaveBtn, savingServer && s.disabledButton]}
             onPress={saveCustomServer}
             disabled={savingServer}
           >
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{savingServer ? 'Saving...' : '💾 Save Server URL'}</Text>
+            <View style={s.buttonLabelRow}><Ionicons name="save-outline" size={16} color={colors.textOnGold} /><Text style={s.serverSaveTxt}>{savingServer ? 'Saving...' : 'Save Server URL'}</Text></View>
           </TouchableOpacity>
           <TouchableOpacity
             style={{ marginTop: 8, alignItems: 'center', paddingVertical: 8 }}
             onPress={() => { setCustomServerUrl(''); saveCustomServer(); }}
           >
-            <Text style={{ color: '#8b949e', fontSize: 12 }}>↩️ Default-க்கு reset பண்ணு</Text>
+            <Text style={s.serverResetTxt}>Default-க்கு reset பண்ணு</Text>
           </TouchableOpacity>
         </View>
 
         {/* ── HuggingFace AI Image Generation ── */}
         <View style={s.card}>
           <View style={s.cardHeader}>
-            <Text style={s.cardIcon}>🤗</Text>
+            <Ionicons name="hardware-chip-outline" size={20} color={colors.goldPrimary} style={s.cardIcon} />
             <Text style={s.cardTitle}>HuggingFace AI Image</Text>
           </View>
           <Text style={s.cardDesc}>
@@ -821,22 +833,23 @@ export default function SettingsScreen() {
           </Text>
           {hfSaved ? (
             <View>
-              <View style={{ backgroundColor: '#0d3321', borderRadius: 8, padding: 10, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ color: '#3fb950', fontSize: 13, fontWeight: '700' }}>✅ HuggingFace Token Saved</Text>
+              <View style={s.savedTokenBadge}>
+                <Ionicons name="checkmark-circle-outline" size={17} color={colors.success} />
+                <Text style={s.savedTokenTxt}>HuggingFace Token Saved</Text>
               </View>
               <TouchableOpacity
-                style={{ backgroundColor: '#c62828', borderRadius: 8, paddingVertical: 11, alignItems: 'center' }}
+                style={s.removeTokenBtn}
                 onPress={removeHfToken}
               >
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>🗑️ Token Remove பண்ணு</Text>
+                <View style={s.buttonLabelRow}><Ionicons name="trash-outline" size={16} color={colors.textPrimary} /><Text style={s.removeTokenTxt}>Token Remove பண்ணு</Text></View>
               </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity
-              style={{ backgroundColor: '#ff6b35', borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}
+              style={s.addTokenBtn}
               onPress={() => setShowHfModal(true)}
             >
-              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>🤗 HuggingFace Token Save பண்ணு</Text>
+              <View style={s.buttonLabelRow}><Ionicons name="key-outline" size={16} color={colors.textOnGold} /><Text style={s.addTokenTxt}>HuggingFace Token Save பண்ணு</Text></View>
             </TouchableOpacity>
           )}
         </View>
@@ -844,14 +857,14 @@ export default function SettingsScreen() {
         {/* ── Photo Styles Global Management ── */}
         <View style={s.card}>
           <View style={s.cardHeader}>
-            <Text style={s.cardIcon}>📸</Text>
+            <Ionicons name="images-outline" size={20} color={colors.cyanPrimary} style={s.cardIcon} />
             <Text style={s.cardTitle}>Photo Styles</Text>
           </View>
           <Text style={s.cardDesc}>
              Chat மற்றும் AI Girls-ல் காண்பிக்கும் Photo Style list-ஐ globally manage பண்ணலாம். Delete செய்தால் எந்த style-மும் database மற்றும் Cloudinary-லிருந்து permanently delete ஆகும்.
           </Text>
           {stylesLoading ? (
-            <ActivityIndicator color="#6C63FF" style={{ marginVertical: 10 }} />
+              <ActivityIndicator color={colors.cyanPrimary} style={{ marginVertical: 10 }} />
           ) : (
             <>
               <Text style={s.stylesSectionLabel}>
@@ -871,7 +884,7 @@ export default function SettingsScreen() {
                     accessibilityLabel={`Permanently delete ${style.name}`}
                   >
                     {deletingStyleId === style.id
-                      ? <ActivityIndicator color="#f85149" size="small" />
+                      ? <ActivityIndicator color={colors.error} size="small" />
                       : <Text style={s.permanentDeleteTxt}>Permanent Delete</Text>}
                   </TouchableOpacity>
                 </View>
@@ -880,14 +893,14 @@ export default function SettingsScreen() {
                 style={s.addStyleBtn}
                 onPress={() => { setNewStyleLabel(''); setNewStylePrompt(''); setShowAddStyleModal(true); }}
               >
-                <Text style={s.addStyleBtnTxt}>➕ Add Custom Style</Text>
+                <View style={s.buttonLabelRow}><Ionicons name="add-circle-outline" size={18} color={colors.textCyan} /><Text style={s.addStyleBtnTxt}>Add Custom Style</Text></View>
               </TouchableOpacity>
             </>
           )}
         </View>
 
         <View style={s.tipsCard}>
-          <Text style={s.tipsTitle}>💡 Tips</Text>
+          <View style={s.tipsTitleRow}><Ionicons name="bulb-outline" size={16} color={colors.goldPrimary} /><Text style={s.tipsTitle}>Tips</Text></View>
           <Text style={s.tip}>• GitHub Token Keys screen-ல் save பண்ணினா auto build trigger ஆகும்</Text>
           <Text style={s.tip}>• Build சுமார் 10-15 நிமிடம் ஆகும், app open வச்சிருங்க</Text>
           <Text style={s.tip}>• முதல் message slow-ஆ வந்தா — server wake up ஆக நேரம் ஆகும்</Text>
@@ -898,14 +911,17 @@ export default function SettingsScreen() {
       <Modal visible={showAddStyleModal} transparent animationType="slide" onRequestClose={() => setShowAddStyleModal(false)}>
         <View style={s.keyModalOverlay}>
           <View style={s.keyModalBox}>
-            <Text style={s.keyModalTitle}>➕ Custom Style சேர்</Text>
+            <View style={s.modalTitleRow}>
+              <Ionicons name="add-circle-outline" size={20} color={colors.goldPrimary} />
+              <Text style={s.keyModalTitle}>Custom Style சேர்</Text>
+            </View>
             <Text style={s.keyModalDesc}>
               Style name மட்டும் கொடு. Prompt optional — கொடுத்தா image generation-ல் use ஆகும்.
             </Text>
             <TextInput
               style={s.keyModalInput}
               placeholder="Style name (e.g. Bikini)"
-              placeholderTextColor="#555"
+              placeholderTextColor={colors.inputPlaceholder}
               value={newStyleLabel}
               onChangeText={setNewStyleLabel}
               autoCapitalize="words"
@@ -914,7 +930,7 @@ export default function SettingsScreen() {
             <TextInput
               style={[s.keyModalInput, { minHeight: 60, textAlignVertical: 'top' }]}
               placeholder="Image prompt (optional, e.g. wearing bikini at beach)"
-              placeholderTextColor="#555"
+              placeholderTextColor={colors.inputPlaceholder}
               value={newStylePrompt}
               onChangeText={setNewStylePrompt}
               autoCapitalize="none"
@@ -930,8 +946,8 @@ export default function SettingsScreen() {
                 disabled={savingStyle}
               >
                 {savingStyle
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={s.keyModalSaveTxt}>✅ Save</Text>}
+                  ? <ActivityIndicator color={colors.textPrimary} size="small" />
+                  : <View style={s.buttonLabelRow}><Ionicons name="checkmark" size={16} color={colors.textOnGold} /><Text style={s.keyModalSaveTxt}>Save</Text></View>}
               </TouchableOpacity>
             </View>
           </View>
@@ -943,172 +959,192 @@ export default function SettingsScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0d1117' },
+  safe: { flex: 1, backgroundColor: C.bgPrimary },
   header: {
-    backgroundColor: '#161b22', flexDirection: 'row',
+    backgroundColor: C.bgSecondary, flexDirection: 'row',
     alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 16,
-    borderBottomWidth: 1, borderBottomColor: '#30363d',
+    borderBottomWidth: 1, borderBottomColor: C.borderSubtle,
   },
-  headerBack: { color: '#fff', fontSize: 22, fontWeight: 'bold', width: 40 },
-  headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold', flex: 1, textAlign: 'center' },
+  headerBack: { fontSize: 22, fontWeight: 'bold', width: 40 },
+  headerTitle: { color: C.textPrimary, fontSize: 20, fontWeight: 'bold', flex: 1, textAlign: 'center' },
   scroll: { padding: 16, paddingBottom: 90 },
-  version: { color: '#8b949e', fontSize: 13, marginBottom: 18, textAlign: 'center' },
+  version: { color: C.textTertiary, fontSize: 13, marginBottom: 18, textAlign: 'center' },
   card: {
-    backgroundColor: '#161b22', borderRadius: 14, padding: 16,
-    marginBottom: 16, borderWidth: 1, borderColor: '#30363d',
+    backgroundColor: C.card, borderRadius: 18, padding: 16,
+    marginBottom: 16, borderWidth: 1, borderColor: C.borderSubtle,
   },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  cardIcon: { fontSize: 22 },
-  cardTitle: { color: '#e6edf3', fontSize: 16, fontWeight: '700' },
-  cardDesc: { color: '#8b949e', fontSize: 13, lineHeight: 20, marginBottom: 14 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  cardIcon: { width: 24, textAlign: 'center' },
+  cardTitle: { color: C.textPrimary, fontSize: 16, fontWeight: '700' },
+  cardDesc: { color: C.textTertiary, fontSize: 13, lineHeight: 20, marginBottom: 14 },
+  buttonLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  tipsTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   updateBtn: {
-    backgroundColor: '#238636', borderRadius: 10,
+    backgroundColor: C.buttonGold, borderRadius: 12,
     paddingVertical: 12, alignItems: 'center', marginBottom: 10,
   },
-  updateBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  checkMsg: { color: '#8b949e', fontSize: 13, marginBottom: 8 },
+  updateBtnTxt: { color: C.textOnGold, fontWeight: '700', fontSize: 14 },
+  checkMsg: { color: C.textTertiary, fontSize: 13, marginBottom: 8 },
   downloadLink: {
-    backgroundColor: '#1f6feb', borderRadius: 10,
+    backgroundColor: C.buttonCyan, borderRadius: 12,
     paddingVertical: 11, alignItems: 'center',
   },
-  downloadLinkTxt: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  downloadLinkTxt: { color: C.textOnCyan, fontWeight: '700', fontSize: 14 },
   playProtectBtn: {
-    backgroundColor: '#2f81f7', borderRadius: 10,
+    backgroundColor: C.buttonCyan, borderRadius: 12,
     paddingVertical: 12, alignItems: 'center',
   },
-  playProtectBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  playProtectBtnTxt: { color: C.textOnCyan, fontWeight: '700', fontSize: 14 },
   infoRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#21262d',
+    flexDirection: 'row', justifyContent: 'space-between', gap: 12,
+    paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: C.borderSubtle,
   },
-  infoLabel: { color: '#8b949e', fontSize: 13 },
-  infoVal: { color: '#e6edf3', fontSize: 13, fontWeight: '600' },
+  infoLabel: { color: C.textTertiary, fontSize: 13, flexShrink: 0 },
+  infoVal: { color: C.textPrimary, fontSize: 13, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
   iconPreviewRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
-  iconPreview: { width: 60, height: 60, borderRadius: 14, borderWidth: 2, borderColor: '#388bfd' },
+  iconPreview: { width: 60, height: 60, borderRadius: 14, borderWidth: 2, borderColor: C.cyanBorder },
   iconPreviewInfo: { flex: 1 },
-  iconPreviewTitle: { color: '#3fb950', fontSize: 14, fontWeight: '700' },
-  iconPreviewHint: { color: '#8b949e', fontSize: 12, marginTop: 2 },
+  iconPreviewTitle: { color: C.success, fontSize: 14, fontWeight: '700' },
+  iconPreviewHint: { color: C.textTertiary, fontSize: 12, marginTop: 2 },
   iconBtn: {
-    backgroundColor: '#6e40c9', borderRadius: 10,
+    backgroundColor: C.buttonGold, borderRadius: 12,
     paddingVertical: 13, alignItems: 'center',
     flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 12,
   },
-  iconBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  iconBtnTxt: { color: C.textOnGold, fontWeight: '700', fontSize: 14, flexShrink: 1 },
   buildStatusBox: {
-    borderRadius: 12, borderWidth: 1.5,
-    padding: 14, marginBottom: 12, backgroundColor: '#0d1117',
+    borderRadius: 14, borderWidth: 1.5,
+    padding: 14, marginBottom: 12, backgroundColor: C.bgSecondary,
   },
   buildStatusHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  buildStatusIcon: { fontSize: 18 },
+  buildStatusIcon: { marginRight: 2 },
   buildStatusTitle: { flex: 1, fontSize: 14, fontWeight: '700' },
-  buildStatusMsg: { color: '#c9d1d9', fontSize: 13, lineHeight: 20 },
+  buildStatusMsg: { color: C.textSecondary, fontSize: 13, lineHeight: 20 },
   viewLogsBtn: {
-    backgroundColor: '#21262d', borderRadius: 8,
-    paddingVertical: 9, alignItems: 'center', marginTop: 10,
-    borderWidth: 1, borderColor: '#30363d',
+    backgroundColor: C.buttonSecondary, borderRadius: 10,
+    paddingVertical: 10, alignItems: 'center', marginTop: 10,
+    borderWidth: 1, borderColor: C.border,
   },
-  viewLogsTxt: { color: '#8b949e', fontSize: 13, fontWeight: '600' },
+  viewLogsTxt: { color: C.textSecondary, fontSize: 13, fontWeight: '600' },
   downloadApkBtn: {
-    backgroundColor: '#238636', borderRadius: 8,
+    backgroundColor: C.buttonGold, borderRadius: 10,
     paddingVertical: 12, alignItems: 'center', marginTop: 10,
   },
-  downloadApkTxt: { color: '#fff', fontWeight: '800', fontSize: 14 },
+  downloadApkTxt: { color: C.textOnGold, fontWeight: '800', fontSize: 14 },
   retryBtn: {
-    backgroundColor: '#21262d', borderRadius: 8,
-    paddingVertical: 9, alignItems: 'center', marginTop: 10,
-    borderWidth: 1, borderColor: '#f85149',
+    backgroundColor: C.buttonSecondary, borderRadius: 10,
+    paddingVertical: 10, alignItems: 'center', marginTop: 10,
+    borderWidth: 1, borderColor: C.error,
   },
-  retryTxt: { color: '#f85149', fontSize: 13, fontWeight: '600' },
+  retryTxt: { color: C.error, fontSize: 13, fontWeight: '600' },
   manualTriggerBtn: {
-    backgroundColor: '#161b22', borderRadius: 10,
-    paddingVertical: 11, alignItems: 'center', marginBottom: 12,
-    borderWidth: 1, borderColor: '#388bfd', borderStyle: 'dashed',
+    backgroundColor: C.card, borderRadius: 12,
+    paddingVertical: 12, alignItems: 'center', marginBottom: 12,
+    borderWidth: 1, borderColor: C.cyanBorder, borderStyle: 'dashed',
   },
-  manualTriggerTxt: { color: '#388bfd', fontWeight: '600', fontSize: 13 },
-  iconSteps: { backgroundColor: '#0d1117', borderRadius: 10, padding: 12, gap: 6 },
-  iconStep: { color: '#8b949e', fontSize: 12, lineHeight: 18 },
+  manualTriggerTxt: { color: C.textCyan, fontWeight: '600', fontSize: 13 },
+  iconSteps: { backgroundColor: C.bgSecondary, borderRadius: 12, padding: 12, gap: 6 },
+  iconStep: { color: C.textTertiary, fontSize: 12, lineHeight: 18 },
   keysBtn: {
-    backgroundColor: '#b08800', borderRadius: 12,
+    backgroundColor: C.buttonGold, borderRadius: 14,
     paddingVertical: 14, alignItems: 'center', marginBottom: 16,
   },
-  keysBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  keysBtnTxt: { color: C.textOnGold, fontWeight: '700', fontSize: 15 },
   tipsCard: {
-    backgroundColor: '#161b22', borderRadius: 14, padding: 16,
-    borderWidth: 1, borderColor: '#30363d',
+    backgroundColor: C.card, borderRadius: 18, padding: 16,
+    borderWidth: 1, borderColor: C.borderSubtle,
   },
-  tipsTitle: { color: '#e6edf3', fontSize: 14, fontWeight: '700', marginBottom: 10 },
-  tip: { color: '#8b949e', fontSize: 12, lineHeight: 20, marginBottom: 4 },
+  tipsTitle: { color: C.textPrimary, fontSize: 14, fontWeight: '700', marginBottom: 10 },
+  tip: { color: C.textTertiary, fontSize: 12, lineHeight: 20, marginBottom: 4 },
   latestApkBanner: {
-    backgroundColor: '#0d2818', borderRadius: 12, borderWidth: 1.5, borderColor: '#238636',
+    backgroundColor: C.cardSecondary, borderRadius: 14, borderWidth: 1.5, borderColor: C.glassGoldBorder,
     padding: 14, marginBottom: 12, alignItems: 'center',
   },
-  latestApkBannerTitle: { color: '#3fb950', fontSize: 15, fontWeight: '800', marginBottom: 4 },
-  latestApkBannerSub: { color: '#8b949e', fontSize: 11, marginBottom: 10 },
-  latestApkBannerBtn: { color: '#fff', fontWeight: '700', fontSize: 13, backgroundColor: '#238636', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20 },
-  keyModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  latestApkBannerTitle: { color: C.goldBright, fontSize: 15, fontWeight: '800' },
+  latestApkBannerSub: { color: C.textTertiary, fontSize: 11, marginBottom: 10 },
+  latestApkBannerBtn: { color: C.textOnGold, fontWeight: '700', fontSize: 13, backgroundColor: C.buttonGold, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20 },
+  keyModalOverlay: { flex: 1, backgroundColor: C.overlay, justifyContent: 'flex-end' },
   keyModalBox: {
-    backgroundColor: '#161b22', borderTopLeftRadius: 22, borderTopRightRadius: 22,
-    padding: 24, paddingBottom: 36, borderTopWidth: 1, borderColor: '#30363d',
+    backgroundColor: C.leatherBlack, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 24, paddingBottom: 36, borderTopWidth: 1, borderColor: C.glassGoldBorder,
   },
-  keyModalTitle: { color: '#e6edf3', fontSize: 18, fontWeight: '800', marginBottom: 8 },
-  keyModalDesc: { color: '#8b949e', fontSize: 12, lineHeight: 18, marginBottom: 16 },
+  modalTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 8 },
+  keyModalTitle: { color: C.textPrimary, fontSize: 18, fontWeight: '800', flexShrink: 1 },
+  keyModalDesc: { color: C.textTertiary, fontSize: 12, lineHeight: 18, marginBottom: 16 },
   keyModalInput: {
-    backgroundColor: '#0d1117', color: '#e6edf3', borderRadius: 10,
-    borderWidth: 1, borderColor: '#388bfd', padding: 14, fontSize: 14,
+    backgroundColor: C.inputBackground, color: C.inputText, borderRadius: 12,
+    borderWidth: 1, borderColor: C.inputBorder, padding: 14, fontSize: 14,
     marginBottom: 16, letterSpacing: 1,
   },
   keyModalBtns: { flexDirection: 'row', gap: 12 },
   keyModalCancel: {
-    flex: 1, backgroundColor: '#21262d', borderRadius: 10,
-    paddingVertical: 13, alignItems: 'center',
+    flex: 1, backgroundColor: C.buttonSecondary, borderRadius: 12,
+    paddingVertical: 13, alignItems: 'center', borderWidth: 1, borderColor: C.border,
   },
-  keyModalCancelTxt: { color: '#8b949e', fontWeight: '700', fontSize: 14 },
+  keyModalCancelTxt: { color: C.textSecondary, fontWeight: '700', fontSize: 14 },
   keyModalSave: {
-    flex: 2, backgroundColor: '#238636', borderRadius: 10,
+    flex: 2, backgroundColor: C.buttonGold, borderRadius: 12,
     paddingVertical: 13, alignItems: 'center',
   },
-  keyModalSaveTxt: { color: '#fff', fontWeight: '800', fontSize: 14 },
+  keyModalSaveTxt: { color: C.textOnGold, fontWeight: '800', fontSize: 14 },
   wakeBtn: {
-    backgroundColor: '#1565C0', borderRadius: 10,
+    backgroundColor: C.buttonCyan, borderRadius: 12,
     paddingVertical: 12, alignItems: 'center', marginBottom: 10,
     flexDirection: 'row', justifyContent: 'center',
   },
-  wakeBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  wakeBtnTxt: { color: C.textOnCyan, fontWeight: '700', fontSize: 14 },
+  serverUrlInput: {
+    backgroundColor: C.inputBackground, color: C.inputText, borderRadius: 12,
+    borderWidth: 1, borderColor: C.inputBorder, padding: 12, fontSize: 13, marginBottom: 10,
+  },
+  serverSaveBtn: { backgroundColor: C.buttonGold, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  serverSaveTxt: { color: C.textOnGold, fontWeight: '700', fontSize: 14 },
+  serverResetTxt: { color: C.textTertiary, fontSize: 12 },
+  disabledButton: { opacity: 0.6 },
   serverOfflineBadge: {
-    backgroundColor: '#1a0000', borderRadius: 8, borderWidth: 1, borderColor: '#f85149',
+    backgroundColor: C.bgSecondary, borderRadius: 10, borderWidth: 1, borderColor: C.error,
     padding: 10, marginBottom: 8,
   },
-  serverOfflineTxt: { color: '#f85149', fontSize: 12, textAlign: 'center' },
+  serverOfflineTxt: { color: C.error, fontSize: 12, textAlign: 'center' },
+  savedTokenBadge: {
+    backgroundColor: C.bgSecondary, borderColor: C.success, borderWidth: 1, borderRadius: 10,
+    padding: 10, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  savedTokenTxt: { color: C.success, fontSize: 13, fontWeight: '700' },
+  removeTokenBtn: { backgroundColor: C.bgSecondary, borderColor: C.error, borderWidth: 1, borderRadius: 10, paddingVertical: 11, alignItems: 'center' },
+  removeTokenTxt: { color: C.error, fontWeight: '700', fontSize: 13 },
+  addTokenBtn: { backgroundColor: C.buttonGold, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  addTokenTxt: { color: C.textOnGold, fontWeight: '700', fontSize: 14 },
   // ── Photo Styles ──────────────────────────────────────────────────────────
   stylesSectionLabel: {
-    color: '#8b949e', fontSize: 11, fontWeight: '700', letterSpacing: 0.8,
+    color: C.textTertiary, fontSize: 11, fontWeight: '700', letterSpacing: 0.8,
     textTransform: 'uppercase', marginBottom: 8, marginTop: 4,
   },
   styleRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#0d1117', borderRadius: 10,
+    backgroundColor: C.bgSecondary, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 11, marginBottom: 6,
-    borderWidth: 1, borderColor: '#21262d',
+    borderWidth: 1, borderColor: C.borderSubtle,
   },
-  styleRowHidden: { borderColor: '#2a1f1f', backgroundColor: '#0d0d0d' },
-  styleRowLabel: { color: '#e6edf3', fontSize: 14, fontWeight: '600' },
-  styleHiddenBadge: { color: '#6e4040', fontSize: 10, marginTop: 2 },
-  stylePromptHint: { color: '#555', fontSize: 11, marginTop: 2 },
+  styleRowHidden: { borderColor: C.error, backgroundColor: C.bgDeep },
+  styleRowLabel: { color: C.textPrimary, fontSize: 14, fontWeight: '600' },
+  styleHiddenBadge: { color: C.error, fontSize: 10, marginTop: 2 },
+  stylePromptHint: { color: C.textMuted, fontSize: 11, marginTop: 2 },
   styleToggleBtn: {
-    width: 36, height: 36, borderRadius: 8,
-    backgroundColor: '#161b22', justifyContent: 'center', alignItems: 'center',
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: C.cardSecondary, justifyContent: 'center', alignItems: 'center',
   },
   permanentDeleteBtn: {
-    backgroundColor: '#321719', borderRadius: 8, borderWidth: 1,
-    borderColor: '#f85149', paddingHorizontal: 9, paddingVertical: 8,
+    backgroundColor: C.bgSecondary, borderRadius: 10, borderWidth: 1,
+    borderColor: C.error, paddingHorizontal: 9, paddingVertical: 8,
     justifyContent: 'center', alignItems: 'center', marginLeft: 8,
   },
-  permanentDeleteTxt: { color: '#f85149', fontSize: 11, fontWeight: '800' },
+  permanentDeleteTxt: { color: C.error, fontSize: 11, fontWeight: '800' },
   addStyleBtn: {
-    backgroundColor: '#1c2a1c', borderRadius: 10, borderWidth: 1,
-    borderColor: '#238636', borderStyle: 'dashed',
+    backgroundColor: C.cyanSoft, borderRadius: 12, borderWidth: 1,
+    borderColor: C.cyanBorder, borderStyle: 'dashed',
     paddingVertical: 12, alignItems: 'center', marginTop: 8,
   },
-  addStyleBtnTxt: { color: '#3fb950', fontWeight: '700', fontSize: 14 },
+  addStyleBtnTxt: { color: C.textCyan, fontWeight: '700', fontSize: 14 },
 });

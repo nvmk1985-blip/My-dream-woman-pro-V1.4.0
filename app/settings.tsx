@@ -1,0 +1,1116 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View, Text, TouchableOpacity, StyleSheet,
+  ScrollView, Linking, ActivityIndicator, Alert, Image, TextInput, Modal, StatusBar,
+  NativeModules, Platform,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Stack, useRouter } from 'expo-router';
+import * as DocumentPicker from 'expo-document-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { uploadUriToCloudinary, getPhotoStyles, createPhotoStyle, deletePhotoStyle, type PhotoStyleRecord, type GlobalStyleEntry } from '../services/api';
+import { ALL_PERSONAS } from '../constants/personas';
+import { premiumTheme as PREMIUM_UI_THEME } from "../constants/premium-theme";
+
+
+const APP_VERSION = '1.2.0';
+const LATEST_APK_URL = 'https://github.com/nvmk1985-blip/My-Dream-Women/releases/latest';
+const API_BASE = '';
+const GITHUB_REPO = 'nvmk1985-blip/My-Dream-Women';
+const WORKFLOW_FILE = 'build-apk.yml';
+const KEYS_STORAGE = 'api_keys_store';
+
+const CUSTOM_SERVER_KEY = 'custom_server_url';
+const DEFAULT_SERVER = 'https://my-dream-women-v-3-0.onrender.com';
+
+type BuildStatus = 'idle' | 'triggering' | 'queued' | 'in_progress' | 'success' | 'failure';
+
+const BUILTIN_PHOTO_STYLES: GlobalStyleEntry[] = [
+  { id: 'normal',     label: 'Normal Photo',   prompt: 'normal photo, fully clothed, casual' },
+  { id: 'nude',       label: 'Nude 🔞',        prompt: 'nude, fully naked, explicit' },
+  { id: 'seminude',   label: 'Semi Nude',      prompt: 'semi nude, partially undressed' },
+  { id: 'breast',     label: 'Breast Show',    prompt: 'topless, showing breasts, bare chest' },
+  { id: 'halfbreast', label: 'Half Breast',    prompt: 'half breast visible, deep cleavage, low cut top' },
+  { id: 'cleavage',   label: 'Cleavage',       prompt: 'deep cleavage, low neckline, cleavage showing' },
+  { id: 'lowneck',    label: 'Low Neckline',   prompt: 'low neckline, low cut dress, revealing neckline' },
+  { id: 'lingerie',   label: 'Lingerie',       prompt: 'wearing lingerie, bra and panties, underwear' },
+  { id: 'buttocks',   label: 'Buttocks',       prompt: 'showing buttocks, from behind, revealing buttocks' },
+  { id: 'highslit',   label: 'High Slit',      prompt: 'high slit dress, thigh high slit, leg revealing slit' },
+  { id: 'seductive',  label: 'Seductive',      prompt: 'seductive pose, alluring, provocative look' },
+  { id: 'wet',        label: 'Wet Clothes',    prompt: 'wet clothes, drenched, see through wet fabric' },
+  { id: 'legs',       label: 'Legs Spread',    prompt: 'legs spread wide, revealing pose' },
+  { id: 'saree',      label: 'Saree Tuck',     prompt: 'lifting saree up, revealing thighs, traditional saree' },
+  { id: 'sleeping',   label: 'Sleeping',       prompt: 'sleeping pose, exposed, lying down' },
+];
+
+export default function SettingsScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [checking, setChecking] = useState(false);
+  const [customServerUrl, setCustomServerUrl] = useState('');
+  const [savingServer, setSavingServer] = useState(false);
+  const [checkMsg, setCheckMsg] = useState('');
+  const [appIconUri, setAppIconUri] = useState<string | null>(null);
+  const [uploadingAppIcon, setUploadingAppIcon] = useState(false);
+  const [buildStatus, setBuildStatus] = useState<BuildStatus>('idle');
+  const [buildRunId, setBuildRunId] = useState<number | null>(null);
+  const [buildMsg, setBuildMsg] = useState('');
+  const [apkUrl, setApkUrl] = useState<string | null>(null);
+  const [latestApkUrl, setLatestApkUrl] = useState<string | null>(null);
+  const [wakingServer, setWakingServer] = useState(false);
+  const [serverStatus, setServerStatus] = useState<'unknown'|'ok'|'sleeping'>('unknown');
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [keyInputVal, setKeyInputVal] = useState('');
+  const [savingKey, setSavingKey] = useState(false);
+  const [showHfModal, setShowHfModal] = useState(false);
+  const [hfTokenInput, setHfTokenInput] = useState('');
+  const [savingHf, setSavingHf] = useState(false);
+  const [hfSaved, setHfSaved] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Photo Styles Global Management ──────────────────────────────────────
+  const [photoStyles, setPhotoStyles] = useState<PhotoStyleRecord[]>([]);
+  const [stylesLoading, setStylesLoading] = useState(false);
+  const [showAddStyleModal, setShowAddStyleModal] = useState(false);
+  const [newStyleLabel, setNewStyleLabel] = useState('');
+  const [newStylePrompt, setNewStylePrompt] = useState('');
+  const [savingStyle, setSavingStyle] = useState(false);
+  const [deletingStyleId, setDeletingStyleId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Load saved custom server URL
+    AsyncStorage.getItem(CUSTOM_SERVER_KEY).then(v => { if (v && v !== DEFAULT_SERVER) setCustomServerUrl(v); }).catch(() => {});
+    // Auto-fetch latest APK URL (no auth needed — public repo)
+    fetchLatestApkPublic();
+    // Check if HuggingFace token is already saved
+    AsyncStorage.getItem(KEYS_STORAGE).then(raw => {
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, string>;
+        if (parsed['huggingface']) setHfSaved(true);
+      }
+    }).catch(() => {});
+    // Auto-load server defaults (GitHub token + HuggingFace token)
+    loadServerDefaults();
+    loadPhotoStyles();
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, []);
+
+  // GitHub Token-ஐ Keys screen-ல் இருந்து படிக்கிறோம்
+  const getGithubToken = async (): Promise<string | null> => {
+    try {
+      const saved = await AsyncStorage.getItem(KEYS_STORAGE);
+      if (!saved) return null;
+      const parsed: Record<string, string> = JSON.parse(saved);
+      return parsed['github'] || null;
+    } catch { return null; }
+  };
+
+  // Server defaults-ஐ auto-load பண்றோம் — GitHub token + HuggingFace token
+  const loadServerDefaults = async () => {
+    try {
+      const res = await fetch(`${DEFAULT_SERVER}/api/app-config`);
+      if (!res.ok) return;
+      const cfg = await res.json() as { githubToken?: string | null; hfToken?: string | null };
+      const raw = await AsyncStorage.getItem(KEYS_STORAGE).catch(() => null);
+      const parsed: Record<string, string> = raw ? JSON.parse(raw) : {};
+      let changed = false;
+      if (cfg.githubToken && !parsed['github']) { parsed['github'] = cfg.githubToken; changed = true; }
+      if (cfg.hfToken && !parsed['huggingface']) { parsed['huggingface'] = cfg.hfToken; setHfSaved(true); changed = true; }
+      if (changed) await AsyncStorage.setItem(KEYS_STORAGE, JSON.stringify(parsed));
+    } catch {
+      // Server offline — skip defaults
+    }
+  };
+
+  // Latest APK URL — no auth needed (public repo releases)
+  const fetchLatestApkPublic = async () => {
+    try {
+      const cached = await AsyncStorage.getItem('cached_apk_url');
+      if (cached) setLatestApkUrl(cached);
+      const res = await fetch(
+        `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
+        { headers: { Accept: 'application/vnd.github.v3+json' } }
+      );
+      const data = await res.json();
+      const apk = data.assets?.find((a: any) => a.name?.endsWith('.apk'));
+      if (apk?.browser_download_url) {
+        setLatestApkUrl(apk.browser_download_url);
+        await AsyncStorage.setItem('cached_apk_url', apk.browser_download_url);
+      }
+    } catch {}
+  };
+
+  // Render server-ஐ wake up பண்றோம்
+  const wakeRenderServer = async () => {
+    setWakingServer(true);
+    setServerStatus('unknown');
+    const serverUrl = (await AsyncStorage.getItem(CUSTOM_SERVER_KEY).catch(() => null)) || DEFAULT_SERVER;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 35000);
+      const res = await fetch(`${serverUrl}/api/healthz`, { signal: controller.signal });
+      clearTimeout(timer);
+      if (res.ok) {
+        setServerStatus('ok');
+        Alert.alert('✅ Server Online!', 'Render server wake ஆச்சு! இப்போ messages அனுப்பலாம்.');
+      } else {
+        setServerStatus('sleeping');
+        Alert.alert('⚠️ Server பிரச்னை', `Server respond பண்றது ஆனா error: ${res.status}`);
+      }
+    } catch {
+      setServerStatus('sleeping');
+      Alert.alert('⏳ Server Wake ஆகுது', '30-60 seconds-ல் ready ஆகும். மீண்டும் try பண்ணுங்க.');
+    } finally {
+      setWakingServer(false);
+    }
+  };
+
+  // HuggingFace token save
+  const saveHfToken = async () => {
+    const token = hfTokenInput.trim();
+    if (!token) { Alert.alert('பிழை', 'HuggingFace Token உள்ளிடுங்க'); return; }
+    setSavingHf(true);
+    try {
+      const raw = await AsyncStorage.getItem(KEYS_STORAGE).catch(() => null);
+      const parsed: Record<string, string> = raw ? JSON.parse(raw) : {};
+      parsed['huggingface'] = token;
+      await AsyncStorage.setItem(KEYS_STORAGE, JSON.stringify(parsed));
+      setHfSaved(true);
+      setShowHfModal(false);
+      setHfTokenInput('');
+      Alert.alert('✅ HuggingFace Token Saved!', 'Chat → Photo Generate-ல் HuggingFace AI use ஆகும்');
+    } catch (e: any) {
+      Alert.alert('Save பிழை', e?.message || 'மீண்டும் try பண்ணுங்க');
+    } finally {
+      setSavingHf(false);
+    }
+  };
+
+  const removeHfToken = async () => {
+    try {
+      const raw = await AsyncStorage.getItem(KEYS_STORAGE).catch(() => null);
+      const parsed: Record<string, string> = raw ? JSON.parse(raw) : {};
+      delete parsed['huggingface'];
+      await AsyncStorage.setItem(KEYS_STORAGE, JSON.stringify(parsed));
+      setHfSaved(false);
+      Alert.alert('🗑️ Removed', 'HuggingFace token remove ஆச்சு');
+    } catch {}
+  };
+
+  // ── Photo Styles database master source ──────────────────────────────────
+  const loadPhotoStyles = async () => {
+    setStylesLoading(true);
+    try {
+      setPhotoStyles(await getPhotoStyles());
+    } catch (e: any) {
+      setPhotoStyles([]);
+      Alert.alert('Photo Styles load ஆகவில்லை', e?.message || 'Server connection check பண்ணுங்க.');
+    } finally {
+      setStylesLoading(false);
+    }
+  };
+
+  const addGlobalStyle = async () => {
+    const label = newStyleLabel.trim();
+    if (!label) { Alert.alert('பிழை', 'Style name உள்ளிடுங்க'); return; }
+    setSavingStyle(true);
+    try {
+      await createPhotoStyle(label, newStylePrompt.trim());
+      await loadPhotoStyles();
+      setShowAddStyleModal(false);
+      setNewStyleLabel('');
+      setNewStylePrompt('');
+      Alert.alert('✅ Added', '"' + label + '" style அனைத்து characters-க்கும் கிடைக்கும்.');
+    } catch (e: any) {
+      Alert.alert('பிழை', e?.message || 'Style save ஆகல. Server connection check பண்ணுங்க.');
+    } finally {
+      setSavingStyle(false);
+    }
+  };
+
+  const deleteGlobalStyle = (style: PhotoStyleRecord) => {
+    Alert.alert(
+      '⚠️ Permanent Delete',
+      'Permanently delete this Photo Style?\n\nThis will remove the style from the database and Cloudinary.\nThis action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Permanent Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingStyleId(style.id);
+            try {
+              await deletePhotoStyle(style.id);
+              await loadPhotoStyles();
+            } catch (e: any) {
+              Alert.alert('பிழை', e?.message || 'Delete ஆகல. Cloudinary folders மாற்றப்படவில்லை.');
+            } finally {
+              setDeletingStyleId(null);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // GitHub key-ஐ save பண்ணி build start பண்றோம்
+  const saveKeyAndBuild = async () => {
+    const key = keyInputVal.trim();
+    if (!key) { Alert.alert('பிழை', 'GitHub Token உள்ளிடுங்க'); return; }
+    setSavingKey(true);
+    try {
+      const saved = await AsyncStorage.getItem(KEYS_STORAGE).catch(() => null);
+      const parsed: Record<string, string> = saved ? JSON.parse(saved) : {};
+      parsed['github'] = key;
+      await AsyncStorage.setItem(KEYS_STORAGE, JSON.stringify(parsed));
+      setShowKeyModal(false);
+      setKeyInputVal('');
+      // Now trigger build with the saved key
+      await triggerGithubBuildWithToken(key);
+    } catch (e: any) {
+      Alert.alert('Save பிழை', e?.message || 'மீண்டும் try பண்ணுங்க');
+    } finally {
+      setSavingKey(false);
+    }
+  };
+
+  // GitHub Actions Build trigger செய்கிறோம்
+  const triggerGithubBuild = async () => {
+    const token = await getGithubToken();
+    if (!token) {
+      setShowKeyModal(true);
+      return;
+    }
+    await triggerGithubBuildWithToken(token);
+  };
+
+  const triggerGithubBuildWithToken = async (token: string) => {
+
+    setBuildStatus('triggering');
+    setBuildMsg('GitHub-ல் build trigger பண்றோம்...');
+    setApkUrl(null);
+
+    try {
+      const res = await fetch(
+        `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ref: 'main' }),
+        }
+      );
+
+      if (res.status === 204) {
+        setBuildStatus('queued');
+        setBuildMsg('✅ Build queue-ல் சேர்ந்தது! Status check பண்றோம்...');
+        // 5 seconds wait பிறகு run ID கண்டுபிடிக்கிறோம்
+        setTimeout(() => pollBuildStatus(token), 5000);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `Status: ${res.status}`);
+      }
+    } catch (e: any) {
+      setBuildStatus('idle');
+      setBuildMsg('');
+      Alert.alert('Build Trigger பிழை', e?.message || 'மீண்டும் try பண்ணுங்க');
+    }
+  };
+
+  // Build status poll செய்கிறோம்
+  const pollBuildStatus = async (token: string) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+
+    const checkStatus = async () => {
+      try {
+        const res = await fetch(
+          `https://api.github.com/repos/${GITHUB_REPO}/actions/runs?per_page=5`,
+          {
+            headers: {
+              Authorization: `token ${token}`,
+              Accept: 'application/vnd.github.v3+json',
+            },
+          }
+        );
+        const data = await res.json();
+        const runs = data.workflow_runs || [];
+        // Latest run கண்டுபிடிக்கிறோம்
+        const latest = runs.find((r: any) => r.name === 'Build APK' || r.path?.includes(WORKFLOW_FILE));
+        if (!latest) {
+          setBuildMsg('🔍 Build run தேடுகிறோம்...');
+          return;
+        }
+
+        setBuildRunId(latest.id);
+        const status = latest.status;
+        const conclusion = latest.conclusion;
+
+        if (status === 'queued') {
+          setBuildStatus('queued');
+          setBuildMsg('⏳ Build queue-ல் காத்திருக்கிறது...');
+        } else if (status === 'in_progress') {
+          setBuildStatus('in_progress');
+          setBuildMsg('🔨 Build நடக்கிறது... (சுமார் 10-15 நிமிடம்)');
+        } else if (status === 'completed') {
+          if (pollRef.current) clearInterval(pollRef.current);
+          if (conclusion === 'success') {
+            setBuildStatus('success');
+            setBuildMsg('✅ Build success! APK ready ஆச்சு!');
+            // Latest release APK link கண்டுபிடிக்கிறோம்
+            fetchLatestApk(token);
+          } else {
+            setBuildStatus('failure');
+            setBuildMsg(`❌ Build fail ஆச்சு (${conclusion}). Logs பார்க்க GitHub-க்கு போங்க.`);
+          }
+        }
+      } catch {}
+    };
+
+    await checkStatus();
+    pollRef.current = setInterval(checkStatus, 30000); // 30 seconds-க்கு ஒரு முறை check
+  };
+
+  // Latest APK release link கண்டுபிடிக்கிறோம்
+  const fetchLatestApk = async (token: string) => {
+    try {
+      const res = await fetch(
+        `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
+        {
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github.v3+json',
+          },
+        }
+      );
+      const data = await res.json();
+      const apk = data.assets?.find((a: any) => a.name?.endsWith('.apk'));
+      if (apk) setApkUrl(apk.browser_download_url);
+    } catch {}
+  };
+
+  // Icon upload + auto trigger
+  const pickAndUploadAppIcon = async () => {
+    // DocumentPicker → file manager திறக்கும் (gallery இல்ல)
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'image/*',
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    setAppIconUri(asset.uri);
+    setUploadingAppIcon(true);
+    try {
+      await uploadUriToCloudinary(asset.uri, 'image/jpeg', 'my-girls/app-icon');
+      setUploadingAppIcon(false);
+      // Auto trigger செய்கிறோம்
+      Alert.alert(
+        '✅ Icon Upload ஆச்சு!',
+        'Cloudinary-ல் save ஆனது.\n\nGitHub Build இப்போது automatically trigger ஆகுமா?',
+        [
+          { text: 'பிறகு பார்க்கலாம்', style: 'cancel' },
+          { text: '🚀 Build Trigger பண்ணு', onPress: triggerGithubBuild },
+        ]
+      );
+    } catch (e: any) {
+      setUploadingAppIcon(false);
+      setAppIconUri(null);
+      Alert.alert('Upload பிழை', e?.message || 'மீண்டும் try பண்ணுங்க');
+    }
+  };
+
+  const saveCustomServer = async () => {
+    setSavingServer(true);
+    try {
+      const url = customServerUrl.trim();
+      if (url && !url.startsWith('http')) {
+        Alert.alert('பிழை', 'URL http:// அல்லது https:// இல் தொடங்கணும்');
+        return;
+      }
+      await AsyncStorage.setItem(CUSTOM_SERVER_KEY, url || DEFAULT_SERVER);
+      Alert.alert('✅ Saved', url ? `Custom server URL saved!\nNext message-ல் இருந்து use ஆகும்.` : 'Default server reset ஆச்சு!');
+    } catch {
+      Alert.alert('Error', 'Save பண்ண முடியல');
+    } finally {
+      setSavingServer(false);
+    }
+  };
+
+  const checkUpdate = async () => {
+    setChecking(true);
+    setCheckMsg('சரிபார்க்கிறோம்...');
+    try {
+      const res = await fetch(`${API_BASE}/api/healthz`);
+      if (res.ok) {
+        setCheckMsg(`✅ v${APP_VERSION} — Latest version தான்! APK link கீழே இருக்கு.`);
+      } else {
+        setCheckMsg(`v${APP_VERSION} — APK link கீழே இருக்கு`);
+      }
+    } catch {
+      setCheckMsg(`v${APP_VERSION} — APK link கீழே download பண்ணலாம்`);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const openPlayProtect = async () => {
+    if (Platform.OS !== 'android') {
+      Alert.alert('Android only', 'Google Play Protect settings Android phone-ல் மட்டும் கிடைக்கும்.');
+      return;
+    }
+    try {
+      const playProtect = NativeModules.PlayProtect as
+        | { openPlayProtect?: () => Promise<boolean> }
+        | undefined;
+      if (!playProtect?.openPlayProtect) {
+        throw new Error('Native module unavailable');
+      }
+      await playProtect.openPlayProtect();
+    } catch {
+      Alert.alert(
+        'Play Protect',
+        'Google Play Protect settings திறக்க முடியவில்லை. Phone Settings → Security → Google Play Protect வழியாக திறக்கவும்.',
+      );
+    }
+  };
+
+  const getBuildStatusColor = () => {
+    switch (buildStatus) {
+      case 'triggering': return '#f59e0b';
+      case 'queued': return '#3b82f6';
+      case 'in_progress': return '#8b5cf6';
+      case 'success': return '#10b981';
+      case 'failure': return '#ef4444';
+      default: return '#6b7280';
+    }
+  };
+
+  const getBuildStatusIcon = () => {
+    switch (buildStatus) {
+      case 'triggering': return '⚡';
+      case 'queued': return '⏳';
+      case 'in_progress': return '🔨';
+      case 'success': return '✅';
+      case 'failure': return '❌';
+      default: return '🚀';
+    }
+  };
+
+  return (
+    <SafeAreaView style={s.safe} edges={['left','right','bottom']}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <Stack.Screen options={{ headerShown: false }} />
+
+      {/* HuggingFace Token Modal */}
+      <Modal visible={showHfModal} transparent animationType="slide" onRequestClose={() => setShowHfModal(false)}>
+        <View style={s.keyModalOverlay}>
+          <View style={s.keyModalBox}>
+            <Text style={s.keyModalTitle}>🤗 HuggingFace Token</Text>
+            <Text style={s.keyModalDesc}>
+              huggingface.co → Profile → Settings → Access Tokens → New Token (read role) → copy பண்ணு
+            </Text>
+            <TextInput
+              style={s.keyModalInput}
+              placeholder="hf_xxxxxxxxxxxxxxxxxxxx"
+              placeholderTextColor={PREMIUM_UI_THEME.colors.textMuted}
+              value={hfTokenInput}
+              onChangeText={setHfTokenInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry={true}
+              autoFocus
+            />
+            <View style={s.keyModalBtns}>
+              <TouchableOpacity style={s.keyModalCancel} onPress={() => { setShowHfModal(false); setHfTokenInput(''); }}>
+                <Text style={s.keyModalCancelTxt}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.keyModalSave, savingHf && { opacity: 0.6 }]}
+                onPress={saveHfToken}
+                disabled={savingHf}
+              >
+                {savingHf
+                  ? <ActivityIndicator color={PREMIUM_UI_THEME.colors.text} size="small" />
+                  : <Text style={s.keyModalSaveTxt}>💾 Save</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* GitHub Key Input Modal */}
+      <Modal visible={showKeyModal} transparent animationType="slide" onRequestClose={() => setShowKeyModal(false)}>
+        <View style={s.keyModalOverlay}>
+          <View style={s.keyModalBox}>
+            <Text style={s.keyModalTitle}>🔑 GitHub Token தேவை</Text>
+            <Text style={s.keyModalDesc}>
+              Build trigger பண்ண GitHub Personal Access Token வேணும்.{'\n'}
+              github.com → Settings → Developer settings → Personal access tokens → repo scope
+            </Text>
+            <TextInput
+              style={s.keyModalInput}
+              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+              placeholderTextColor={PREMIUM_UI_THEME.colors.textMuted}
+              value={keyInputVal}
+              onChangeText={setKeyInputVal}
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry={true}
+              autoFocus
+            />
+            <View style={s.keyModalBtns}>
+              <TouchableOpacity style={s.keyModalCancel} onPress={() => { setShowKeyModal(false); setKeyInputVal(''); }}>
+                <Text style={s.keyModalCancelTxt}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.keyModalSave, savingKey && { opacity: 0.6 }]}
+                onPress={saveKeyAndBuild}
+                disabled={savingKey}
+              >
+                {savingKey
+                  ? <ActivityIndicator color={PREMIUM_UI_THEME.colors.text} size="small" />
+                  : <Text style={s.keyModalSaveTxt}>💾 Save & Build</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <View style={[s.header, { paddingTop: insets.top + 16 }]}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={s.headerBack}>←</Text>
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>⚙️ Settings</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView contentContainerStyle={s.scroll}>
+        <Text style={s.version}>Version {APP_VERSION}</Text>
+
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <Text style={s.cardIcon}>🔄</Text>
+            <Text style={s.cardTitle}>App Update</Text>
+          </View>
+          <Text style={s.cardDesc}>
+            புதிய version வந்திருக்கா check பண்ணி latest features download பண்ணும்.
+          </Text>
+          <TouchableOpacity
+            style={[s.updateBtn, checking && { opacity: 0.7 }]}
+            onPress={checkUpdate}
+            disabled={checking}
+          >
+            {checking
+              ? <ActivityIndicator color={PREMIUM_UI_THEME.colors.text} size="small" />
+              : <Text style={s.updateBtnTxt}>🔍 Update Check பண்ணு</Text>
+            }
+          </TouchableOpacity>
+          {checkMsg ? <Text style={s.checkMsg}>{checkMsg}</Text> : null}
+          {!checking && (
+            <TouchableOpacity style={s.downloadLink} onPress={() => Linking.openURL(LATEST_APK_URL)}>
+              <Text style={s.downloadLinkTxt}>⬇️ Latest APK Download</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <Text style={s.cardIcon}>ℹ️</Text>
+            <Text style={s.cardTitle}>App Info</Text>
+          </View>
+          {[
+            ['App', 'My Dream Women'],
+            ['Version', APP_VERSION],
+            ['Package', 'com.mydreamwomen'],
+            ['Storage', 'Cloudinary (dazmrxsyc)'],
+            ['Cloudinary Mail', 'Nvmmmnv80@gmail.com'],
+            ['AI Model', 'Gemini 2.5 Flash'],
+            ['Characters', '10 Tamil AI'],
+            ['Server', 'my-dream-women-v-3-0.onrender.com'],
+          ].map(([label, val]) => (
+            <View key={label} style={s.infoRow}>
+              <Text style={s.infoLabel}>{label}</Text>
+              <Text style={s.infoVal}>{val}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <Text style={s.cardIcon}>🛡️</Text>
+            <Text style={s.cardTitle}>Google Play Protect</Text>
+          </View>
+          <Text style={s.cardDesc}>
+            உங்கள் phone-ன் Google Play Protect பாதுகாப்பு settings-ஐ திறந்து app scan செய்யலாம்.
+          </Text>
+          <TouchableOpacity style={s.playProtectBtn} onPress={openPlayProtect}>
+            <Text style={s.playProtectBtnTxt}>🛡️ Play Protect திறக்கவும்</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* App Icon மாத்து + Auto Build Trigger */}
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <Text style={s.cardIcon}>🎯</Text>
+            <Text style={s.cardTitle}>App Icon மாத்து</Text>
+          </View>
+          <Text style={s.cardDesc}>
+            உங்கள் photo-வை icon-ஆக upload பண்ணுங்க. Build automatically trigger ஆகும்! GitHub-க்கு போக வேண்டாம்.
+          </Text>
+
+          {appIconUri ? (
+            <View style={s.iconPreviewRow}>
+              <Image source={{ uri: appIconUri }} style={s.iconPreview} />
+              <View style={s.iconPreviewInfo}>
+                <Text style={s.iconPreviewTitle}>✅ Upload ஆச்சு!</Text>
+                <Text style={s.iconPreviewHint}>Build trigger ஆகுது...</Text>
+              </View>
+            </View>
+          ) : null}
+
+          <TouchableOpacity
+            style={[s.iconBtn, uploadingAppIcon && { opacity: 0.6 }]}
+            onPress={pickAndUploadAppIcon}
+            disabled={uploadingAppIcon || buildStatus === 'in_progress'}
+          >
+            {uploadingAppIcon
+              ? <><ActivityIndicator color={PREMIUM_UI_THEME.colors.text} size="small" /><Text style={s.iconBtnTxt}> Uploading...</Text></>
+              : <Text style={s.iconBtnTxt}>📁 {appIconUri ? 'வேற Icon Upload பண்ணு' : 'File Manager-ல் இருந்து Icon Select பண்ணு'}</Text>
+            }
+          </TouchableOpacity>
+
+          {/* Latest APK Download — always visible */}
+          {(latestApkUrl || (buildStatus === 'success' && apkUrl)) && (
+            <TouchableOpacity
+              style={s.latestApkBanner}
+              onPress={() => Linking.openURL((latestApkUrl || apkUrl)!)}
+            >
+              <Text style={s.latestApkBannerTitle}>⬇️ Latest APK Ready!</Text>
+              <Text style={s.latestApkBannerSub} numberOfLines={1}>{latestApkUrl || apkUrl}</Text>
+              <Text style={s.latestApkBannerBtn}>Download Now</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Build Status Box */}
+          {buildStatus !== 'idle' && (
+            <View style={[s.buildStatusBox, { borderColor: getBuildStatusColor() }]}>
+              <View style={s.buildStatusHeader}>
+                <Text style={s.buildStatusIcon}>{getBuildStatusIcon()}</Text>
+                <Text style={[s.buildStatusTitle, { color: getBuildStatusColor() }]}>
+                  Build Status
+                </Text>
+                {(buildStatus === 'triggering' || buildStatus === 'queued' || buildStatus === 'in_progress') && (
+                  <ActivityIndicator color={getBuildStatusColor()} size="small" />
+                )}
+              </View>
+              <Text style={s.buildStatusMsg}>{buildMsg}</Text>
+
+              {buildStatus === 'in_progress' && buildRunId && (
+                <TouchableOpacity
+                  style={s.viewLogsBtn}
+                  onPress={() => Linking.openURL(`https://github.com/${GITHUB_REPO}/actions/runs/${buildRunId}`)}
+                >
+                  <Text style={s.viewLogsTxt}>📋 Live Logs பார்க்க</Text>
+                </TouchableOpacity>
+              )}
+
+              {buildStatus === 'success' && apkUrl && (
+                <TouchableOpacity
+                  style={s.downloadApkBtn}
+                  onPress={() => Linking.openURL(apkUrl)}
+                >
+                  <Text style={s.downloadApkTxt}>⬇️ புது APK Download பண்ணு</Text>
+                </TouchableOpacity>
+              )}
+
+              {buildStatus === 'failure' && (
+                <TouchableOpacity
+                  style={s.retryBtn}
+                  onPress={triggerGithubBuild}
+                >
+                  <Text style={s.retryTxt}>🔄 மீண்டும் try பண்ணு</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          {/* Manual trigger button - build idle ஆனாலும் use பண்ணலாம் */}
+          {buildStatus === 'idle' && (
+            <TouchableOpacity style={s.manualTriggerBtn} onPress={triggerGithubBuild}>
+              <Text style={s.manualTriggerTxt}>🚀 Build Trigger பண்ணு (icon upload இல்லாமல்)</Text>
+            </TouchableOpacity>
+          )}
+
+          <View style={s.iconSteps}>
+            <Text style={s.iconStep}>1️⃣ File Manager திறக்கும் → folder navigate → image select</Text>
+            <Text style={s.iconStep}>2️⃣ Cloudinary-ல் auto save ஆகும்</Text>
+            <Text style={s.iconStep}>3️⃣ App-லேயே Build automatically trigger ஆகும் 🆕</Text>
+            <Text style={s.iconStep}>4️⃣ Build ready ஆனதும் Download link கிடைக்கும் 🆕</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity style={s.keysBtn} onPress={() => router.push('/keys')}>
+          <Text style={s.keysBtnTxt}>🔑 Keys & Accounts</Text>
+        </TouchableOpacity>
+
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <Text style={s.cardIcon}>🌐</Text>
+            <Text style={s.cardTitle}>Custom Server URL</Text>
+          </View>
+          <Text style={s.cardDesc}>Render server sleep ஆனா இந்த option-ல் வேற server URL set பண்ணலாம். Empty விட்டா default Render server use ஆகும்.</Text>
+          <Text style={{ color: PREMIUM_UI_THEME.colors.text, fontSize: 11, marginBottom: 10 }}>
+            இந்த APK-ல் built-in URL: <Text style={{ color: PREMIUM_UI_THEME.colors.lavender }}>{DEFAULT_SERVER}</Text>
+          </Text>
+          <TouchableOpacity
+            style={[s.wakeBtn, wakingServer && { opacity: 0.6 }]}
+            onPress={wakeRenderServer}
+            disabled={wakingServer}
+          >
+            {wakingServer
+              ? <><ActivityIndicator color={PREMIUM_UI_THEME.colors.text} size="small" /><Text style={s.wakeBtnTxt}>  Waking up server...</Text></>
+              : <Text style={s.wakeBtnTxt}>
+                  {serverStatus === 'ok' ? '✅ Server Online — Ping Again' : '🔄 Render Server Wake பண்ணு'}
+                </Text>
+            }
+          </TouchableOpacity>
+          {serverStatus === 'sleeping' && (
+            <View style={s.serverOfflineBadge}>
+              <Text style={s.serverOfflineTxt}>⚠️ Server connect ஆகல — 30-60s wait பண்ணி retry பண்ணுங்க</Text>
+            </View>
+          )}
+          {serverStatus === 'ok' && (
+            <View style={[s.serverOfflineBadge, { backgroundColor: PREMIUM_UI_THEME.colors.successSurface, borderColor: PREMIUM_UI_THEME.colors.success }]}>
+              <Text style={[s.serverOfflineTxt, { color: PREMIUM_UI_THEME.colors.text }]}>✅ Render server online — messages அனுப்பலாம்!</Text>
+            </View>
+          )}
+          <TextInput
+            style={{ backgroundColor: PREMIUM_UI_THEME.colors.surface, color: PREMIUM_UI_THEME.colors.text, borderRadius: 8, borderWidth: 1, borderColor: PREMIUM_UI_THEME.colors.border, padding: 10, fontSize: 13, marginBottom: 10 }}
+            value={customServerUrl}
+            onChangeText={setCustomServerUrl}
+            placeholder='https://your-server.onrender.com'
+            placeholderTextColor={PREMIUM_UI_THEME.colors.textMuted}
+            autoCapitalize='none'
+            autoCorrect={false}
+          />
+          <TouchableOpacity
+            style={{ backgroundColor: savingServer ? '#555' : '#238636', borderRadius: 8, paddingVertical: 11, alignItems: 'center' }}
+            onPress={saveCustomServer}
+            disabled={savingServer}
+          >
+            <Text style={{ color: PREMIUM_UI_THEME.colors.text, fontWeight: '700', fontSize: 14 }}>{savingServer ? 'Saving...' : '💾 Save Server URL'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ marginTop: 8, alignItems: 'center', paddingVertical: 8 }}
+            onPress={() => { setCustomServerUrl(''); saveCustomServer(); }}
+          >
+            <Text style={{ color: PREMIUM_UI_THEME.colors.text, fontSize: 12 }}>↩️ Default-க்கு reset பண்ணு</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── HuggingFace AI Image Generation ── */}
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <Text style={s.cardIcon}>🤗</Text>
+            <Text style={s.cardTitle}>HuggingFace AI Image</Text>
+          </View>
+          <Text style={s.cardDesc}>
+            Chat-ல் Photo Generate பண்ணும்போது HuggingFace AI (PornMaster-pro-V7) use ஆகும்.{'\n'}
+            Token save பண்ணினா automatically use ஆகும்.
+          </Text>
+          {hfSaved ? (
+            <View>
+              <View style={{ backgroundColor: PREMIUM_UI_THEME.colors.surface, borderRadius: 8, padding: 10, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ color: PREMIUM_UI_THEME.colors.text, fontSize: 13, fontWeight: '700' }}>✅ HuggingFace Token Saved</Text>
+              </View>
+              <TouchableOpacity
+                style={{ backgroundColor: PREMIUM_UI_THEME.colors.dangerSurface, borderRadius: 8, paddingVertical: 11, alignItems: 'center' }}
+                onPress={removeHfToken}
+              >
+                <Text style={{ color: PREMIUM_UI_THEME.colors.text, fontWeight: '700', fontSize: 13 }}>🗑️ Token Remove பண்ணு</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={{ backgroundColor: PREMIUM_UI_THEME.colors.surface, borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}
+              onPress={() => setShowHfModal(true)}
+            >
+              <Text style={{ color: PREMIUM_UI_THEME.colors.text, fontWeight: '700', fontSize: 14 }}>🤗 HuggingFace Token Save பண்ணு</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* ── Photo Styles Global Management ── */}
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <Text style={s.cardIcon}>📸</Text>
+            <Text style={s.cardTitle}>Photo Styles</Text>
+          </View>
+          <Text style={s.cardDesc}>
+             Chat மற்றும் AI Girls-ல் காண்பிக்கும் Photo Style list-ஐ globally manage பண்ணலாம். Delete செய்தால் எந்த style-மும் database மற்றும் Cloudinary-லிருந்து permanently delete ஆகும்.
+          </Text>
+          {stylesLoading ? (
+            <ActivityIndicator color={PREMIUM_UI_THEME.colors.lavender} style={{ marginVertical: 10 }} />
+          ) : (
+            <>
+              <Text style={s.stylesSectionLabel}>
+                Active Styles ({photoStyles.length})
+              </Text>
+              {photoStyles.map(style => (
+                <View key={style.id} style={s.styleRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.styleRowLabel}>{style.name}</Text>
+                    {style.prompt ? <Text style={s.stylePromptHint} numberOfLines={1}>{style.prompt}</Text> : null}
+                  </View>
+                  <TouchableOpacity
+                    style={s.permanentDeleteBtn}
+                    disabled={deletingStyleId === style.id}
+                    onPress={() => deleteGlobalStyle(style)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Permanently delete ${style.name}`}
+                  >
+                    {deletingStyleId === style.id
+                      ? <ActivityIndicator color={PREMIUM_UI_THEME.colors.text} size="small" />
+                      : <Text style={s.permanentDeleteTxt}>Permanent Delete</Text>}
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity
+                style={s.addStyleBtn}
+                onPress={() => { setNewStyleLabel(''); setNewStylePrompt(''); setShowAddStyleModal(true); }}
+              >
+                <Text style={s.addStyleBtnTxt}>➕ Add Custom Style</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
+        <View style={s.tipsCard}>
+          <Text style={s.tipsTitle}>💡 Tips</Text>
+          <Text style={s.tip}>• GitHub Token Keys screen-ல் save பண்ணினா auto build trigger ஆகும்</Text>
+          <Text style={s.tip}>• Build சுமார் 10-15 நிமிடம் ஆகும், app open வச்சிருங்க</Text>
+          <Text style={s.tip}>• முதல் message slow-ஆ வந்தா — server wake up ஆக நேரம் ஆகும்</Text>
+          <Text style={s.tip}>• Cloud-ல் images save ஆக Cloudinary configured ஆகிட்டது</Text>
+        </View>
+      </ScrollView>
+      {/* ── Add Custom Style Modal ── */}
+      <Modal visible={showAddStyleModal} transparent animationType="slide" onRequestClose={() => setShowAddStyleModal(false)}>
+        <View style={s.keyModalOverlay}>
+          <View style={s.keyModalBox}>
+            <Text style={s.keyModalTitle}>➕ Custom Style சேர்</Text>
+            <Text style={s.keyModalDesc}>
+              Style name மட்டும் கொடு. Prompt optional — கொடுத்தா image generation-ல் use ஆகும்.
+            </Text>
+            <TextInput
+              style={s.keyModalInput}
+              placeholder="Style name (e.g. Bikini)"
+              placeholderTextColor={PREMIUM_UI_THEME.colors.textMuted}
+              value={newStyleLabel}
+              onChangeText={setNewStyleLabel}
+              autoCapitalize="words"
+              autoFocus
+            />
+            <TextInput
+              style={[s.keyModalInput, { minHeight: 60, textAlignVertical: 'top' }]}
+              placeholder="Image prompt (optional, e.g. wearing bikini at beach)"
+              placeholderTextColor={PREMIUM_UI_THEME.colors.textMuted}
+              value={newStylePrompt}
+              onChangeText={setNewStylePrompt}
+              autoCapitalize="none"
+              multiline
+            />
+            <View style={s.keyModalBtns}>
+              <TouchableOpacity style={s.keyModalCancel} onPress={() => setShowAddStyleModal(false)}>
+                <Text style={s.keyModalCancelTxt}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.keyModalSave, savingStyle && { opacity: 0.6 }]}
+                onPress={addGlobalStyle}
+                disabled={savingStyle}
+              >
+                {savingStyle
+                  ? <ActivityIndicator color={PREMIUM_UI_THEME.colors.text} size="small" />
+                  : <Text style={s.keyModalSaveTxt}>✅ Save</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+    </SafeAreaView>
+  );
+}
+
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: PREMIUM_UI_THEME.colors.background },
+  header: {
+    backgroundColor: PREMIUM_UI_THEME.colors.backgroundRaised, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 16,
+    borderBottomWidth: 1, borderBottomColor: PREMIUM_UI_THEME.colors.border,
+  },
+  headerBack: { color: PREMIUM_UI_THEME.colors.text, fontSize: 22, fontWeight: 'bold', width: 40 },
+  headerTitle: { color: PREMIUM_UI_THEME.colors.text, fontSize: 20, fontWeight: 'bold', flex: 1, textAlign: 'center' },
+  scroll: { padding: 16, paddingBottom: 90 },
+  version: { color: PREMIUM_UI_THEME.colors.text, fontSize: 13, marginBottom: 18, textAlign: 'center' },
+  card: {
+    backgroundColor: PREMIUM_UI_THEME.colors.surface, borderRadius: 14, padding: 16,
+    marginBottom: 16, borderWidth: 1, borderColor: PREMIUM_UI_THEME.colors.border,
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  cardIcon: { fontSize: 22 },
+  cardTitle: { color: PREMIUM_UI_THEME.colors.text, fontSize: 16, fontWeight: '700' },
+  cardDesc: { color: PREMIUM_UI_THEME.colors.textMuted, fontSize: 13, lineHeight: 20, marginBottom: 14 },
+  updateBtn: {
+    backgroundColor: PREMIUM_UI_THEME.colors.purpleDeep, borderRadius: 10,
+    paddingVertical: 12, alignItems: 'center', marginBottom: 10,
+  },
+  updateBtnTxt: { color: PREMIUM_UI_THEME.colors.text, fontWeight: '700', fontSize: 14 },
+  checkMsg: { color: PREMIUM_UI_THEME.colors.text, fontSize: 13, marginBottom: 8 },
+  downloadLink: {
+    backgroundColor: PREMIUM_UI_THEME.colors.surface, borderRadius: 10,
+    paddingVertical: 11, alignItems: 'center',
+  },
+  downloadLinkTxt: { color: PREMIUM_UI_THEME.colors.text, fontWeight: '700', fontSize: 14 },
+  playProtectBtn: {
+    backgroundColor: PREMIUM_UI_THEME.colors.purpleDeep, borderRadius: 10,
+    paddingVertical: 12, alignItems: 'center',
+  },
+  playProtectBtnTxt: { color: PREMIUM_UI_THEME.colors.text, fontWeight: '700', fontSize: 14 },
+  infoRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: PREMIUM_UI_THEME.colors.border,
+  },
+  infoLabel: { color: PREMIUM_UI_THEME.colors.textSecondary, fontSize: 13 },
+  infoVal: { color: PREMIUM_UI_THEME.colors.textSecondary, fontSize: 13, fontWeight: '600' },
+  iconPreviewRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
+  iconPreview: { width: 60, height: 60, borderRadius: 14, borderWidth: 2, borderColor: PREMIUM_UI_THEME.colors.border },
+  iconPreviewInfo: { flex: 1 },
+  iconPreviewTitle: { color: PREMIUM_UI_THEME.colors.text, fontSize: 14, fontWeight: '700' },
+  iconPreviewHint: { color: PREMIUM_UI_THEME.colors.textMuted, fontSize: 12, marginTop: 2 },
+  iconBtn: {
+    backgroundColor: PREMIUM_UI_THEME.colors.purpleDeep, borderRadius: 10,
+    paddingVertical: 13, alignItems: 'center',
+    flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 12,
+  },
+  iconBtnTxt: { color: PREMIUM_UI_THEME.colors.text, fontWeight: '700', fontSize: 14 },
+  buildStatusBox: {
+    borderRadius: 12, borderWidth: 1.5,
+    padding: 14, marginBottom: 12, backgroundColor: PREMIUM_UI_THEME.colors.surface,
+  },
+  buildStatusHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  buildStatusIcon: { fontSize: 18 },
+  buildStatusTitle: { flex: 1, fontSize: 14, fontWeight: '700' },
+  buildStatusMsg: { color: PREMIUM_UI_THEME.colors.text, fontSize: 13, lineHeight: 20 },
+  viewLogsBtn: {
+    backgroundColor: PREMIUM_UI_THEME.colors.purpleDeep, borderRadius: 8,
+    paddingVertical: 9, alignItems: 'center', marginTop: 10,
+    borderWidth: 1, borderColor: PREMIUM_UI_THEME.colors.border,
+  },
+  viewLogsTxt: { color: PREMIUM_UI_THEME.colors.text, fontSize: 13, fontWeight: '600' },
+  downloadApkBtn: {
+    backgroundColor: PREMIUM_UI_THEME.colors.purpleDeep, borderRadius: 8,
+    paddingVertical: 12, alignItems: 'center', marginTop: 10,
+  },
+  downloadApkTxt: { color: PREMIUM_UI_THEME.colors.text, fontWeight: '800', fontSize: 14 },
+  retryBtn: {
+    backgroundColor: PREMIUM_UI_THEME.colors.dangerSurface, borderRadius: 8,
+    paddingVertical: 9, alignItems: 'center', marginTop: 10,
+    borderWidth: 1, borderColor: PREMIUM_UI_THEME.colors.danger,
+  },
+  retryTxt: { color: PREMIUM_UI_THEME.colors.danger, fontSize: 13, fontWeight: '600' },
+  manualTriggerBtn: {
+    backgroundColor: PREMIUM_UI_THEME.colors.purpleDeep, borderRadius: 10,
+    paddingVertical: 11, alignItems: 'center', marginBottom: 12,
+    borderWidth: 1, borderColor: PREMIUM_UI_THEME.colors.border, borderStyle: 'dashed',
+  },
+  manualTriggerTxt: { color: PREMIUM_UI_THEME.colors.text, fontWeight: '600', fontSize: 13 },
+  iconSteps: { backgroundColor: PREMIUM_UI_THEME.colors.surface, borderRadius: 10, padding: 12, gap: 6 },
+  iconStep: { color: PREMIUM_UI_THEME.colors.textSecondary, fontSize: 12, lineHeight: 18 },
+  keysBtn: {
+    backgroundColor: PREMIUM_UI_THEME.colors.gold, borderRadius: 12,
+    paddingVertical: 14, alignItems: 'center', marginBottom: 16,
+  },
+  keysBtnTxt: { color: PREMIUM_UI_THEME.colors.background, fontWeight: '700', fontSize: 15 },
+  tipsCard: {
+    backgroundColor: PREMIUM_UI_THEME.colors.warningSurface, borderRadius: 14, padding: 16,
+    borderWidth: 1, borderColor: PREMIUM_UI_THEME.colors.gold,
+  },
+  tipsTitle: { color: PREMIUM_UI_THEME.colors.goldSoft, fontSize: 14, fontWeight: '700', marginBottom: 10 },
+  tip: { color: PREMIUM_UI_THEME.colors.goldSoft, fontSize: 12, lineHeight: 20, marginBottom: 4 },
+  latestApkBanner: {
+    backgroundColor: PREMIUM_UI_THEME.colors.surface, borderRadius: 12, borderWidth: 1.5, borderColor: PREMIUM_UI_THEME.colors.border,
+    padding: 14, marginBottom: 12, alignItems: 'center',
+  },
+  latestApkBannerTitle: { color: PREMIUM_UI_THEME.colors.text, fontSize: 15, fontWeight: '800', marginBottom: 4 },
+  latestApkBannerSub: { color: PREMIUM_UI_THEME.colors.textMuted, fontSize: 11, marginBottom: 10 },
+  latestApkBannerBtn: { color: PREMIUM_UI_THEME.colors.text, fontWeight: '700', fontSize: 13, backgroundColor: PREMIUM_UI_THEME.colors.purpleDeep, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20 },
+  keyModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  keyModalBox: {
+    backgroundColor: PREMIUM_UI_THEME.colors.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22,
+    padding: 24, paddingBottom: 36, borderTopWidth: 1, borderColor: PREMIUM_UI_THEME.colors.border,
+  },
+  keyModalTitle: { color: PREMIUM_UI_THEME.colors.text, fontSize: 18, fontWeight: '800', marginBottom: 8 },
+  keyModalDesc: { color: PREMIUM_UI_THEME.colors.textMuted, fontSize: 12, lineHeight: 18, marginBottom: 16 },
+  keyModalInput: {
+    backgroundColor: PREMIUM_UI_THEME.colors.surfaceElevated, color: PREMIUM_UI_THEME.colors.text, borderRadius: 10,
+    borderWidth: 1, borderColor: PREMIUM_UI_THEME.colors.border, padding: 14, fontSize: 14,
+    marginBottom: 16, letterSpacing: 1,
+  },
+  keyModalBtns: { flexDirection: 'row', gap: 12 },
+  keyModalCancel: {
+    flex: 1, backgroundColor: PREMIUM_UI_THEME.colors.surfaceElevated, borderRadius: 10,
+    paddingVertical: 13, alignItems: 'center',
+  },
+  keyModalCancelTxt: { color: PREMIUM_UI_THEME.colors.text, fontWeight: '700', fontSize: 14 },
+  keyModalSave: {
+    flex: 2, backgroundColor: PREMIUM_UI_THEME.colors.purpleDeep, borderRadius: 10,
+    paddingVertical: 13, alignItems: 'center',
+  },
+  keyModalSaveTxt: { color: PREMIUM_UI_THEME.colors.text, fontWeight: '800', fontSize: 14 },
+  wakeBtn: {
+    backgroundColor: PREMIUM_UI_THEME.colors.purpleDeep, borderRadius: 10,
+    paddingVertical: 12, alignItems: 'center', marginBottom: 10,
+    flexDirection: 'row', justifyContent: 'center',
+  },
+  wakeBtnTxt: { color: PREMIUM_UI_THEME.colors.text, fontWeight: '700', fontSize: 14 },
+  serverOfflineBadge: {
+    backgroundColor: PREMIUM_UI_THEME.colors.surface, borderRadius: 8, borderWidth: 1, borderColor: PREMIUM_UI_THEME.colors.border,
+    padding: 10, marginBottom: 8,
+  },
+  serverOfflineTxt: { color: PREMIUM_UI_THEME.colors.text, fontSize: 12, textAlign: 'center' },
+  // ── Photo Styles ──────────────────────────────────────────────────────────
+  stylesSectionLabel: {
+    color: PREMIUM_UI_THEME.colors.textSecondary, fontSize: 11, fontWeight: '700', letterSpacing: 0.8,
+    textTransform: 'uppercase', marginBottom: 8, marginTop: 4,
+  },
+  styleRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: PREMIUM_UI_THEME.colors.surface, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 11, marginBottom: 6,
+    borderWidth: 1, borderColor: PREMIUM_UI_THEME.colors.border,
+  },
+  styleRowHidden: { borderColor: PREMIUM_UI_THEME.colors.border, backgroundColor: PREMIUM_UI_THEME.colors.surface },
+  styleRowLabel: { color: PREMIUM_UI_THEME.colors.textSecondary, fontSize: 14, fontWeight: '600' },
+  styleHiddenBadge: { color: PREMIUM_UI_THEME.colors.text, fontSize: 10, marginTop: 2 },
+  stylePromptHint: { color: PREMIUM_UI_THEME.colors.textMuted, fontSize: 11, marginTop: 2 },
+  styleToggleBtn: {
+    width: 36, height: 36, borderRadius: 8,
+    backgroundColor: PREMIUM_UI_THEME.colors.purpleDeep, justifyContent: 'center', alignItems: 'center',
+  },
+  permanentDeleteBtn: {
+    backgroundColor: PREMIUM_UI_THEME.colors.dangerSurface, borderRadius: 8, borderWidth: 1,
+    borderColor: PREMIUM_UI_THEME.colors.danger, paddingHorizontal: 9, paddingVertical: 8,
+    justifyContent: 'center', alignItems: 'center', marginLeft: 8,
+  },
+  permanentDeleteTxt: { color: PREMIUM_UI_THEME.colors.danger, fontSize: 11, fontWeight: '800' },
+  addStyleBtn: {
+    backgroundColor: PREMIUM_UI_THEME.colors.purpleDeep, borderRadius: 10, borderWidth: 1,
+    borderColor: PREMIUM_UI_THEME.colors.border, borderStyle: 'dashed',
+    paddingVertical: 12, alignItems: 'center', marginTop: 8,
+  },
+  addStyleBtnTxt: { color: PREMIUM_UI_THEME.colors.text, fontWeight: '700', fontSize: 14 },
+});

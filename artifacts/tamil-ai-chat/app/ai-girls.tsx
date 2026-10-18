@@ -28,6 +28,11 @@ import { uploadToCloudinary, imageToPrompt, createCloudinaryFolder, getCloudinar
 import { requestPhotoVideoPermissionsAsync } from '../services/media-permissions';
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
+import { Ionicons } from '@expo/vector-icons';
+import themeTokens from '../constants/colors';
+import { useColors } from '../hooks/useColors';
+
+const C = themeTokens.dark;
 
 const STYLE_TO_PROMPT: Record<string, string> = {
   breast: 'topless, showing breasts, bare chest',
@@ -59,6 +64,14 @@ export const RINGTONES = [
   { id: 'silent',    label: 'Silent',         emoji: '🔕' },
 ] as const;
 export type RingtoneId = typeof RINGTONES[number]['id'];
+const RINGTONE_ICONS: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
+  classic: 'notifications-outline',
+  whatsapp: 'chatbubble-ellipses-outline',
+  melody: 'musical-notes-outline',
+  cute: 'musical-note-outline',
+  alert: 'alert-circle-outline',
+  silent: 'notifications-off-outline',
+};
 
 export function playRingtone(id: string) {
   if (id === 'silent' || typeof window === 'undefined') return;
@@ -112,6 +125,7 @@ const Toggle = ({ value, onToggle }: { value: boolean; onToggle: () => void }) =
 const KEYS = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
 
 export default function AIGirlsScreen() {
+  const colors = useColors();
   const router = useRouter();
   const { action } = useLocalSearchParams<{ action?: string }>();
   const routedActionRef = useRef<string | null>(null);
@@ -1037,7 +1051,7 @@ Then write these prompts:
               onPress={() => openUrlSettings(p)}
               accessibilityLabel={`Manage URLs for ${p.name}`}
             >
-              <Text style={s.urlSettingsTxt}>🔗</Text>
+              <Ionicons name="link-outline" size={18} color={C.cyanPrimary} />
             </TouchableOpacity>
           </View>
           <Text style={s.chatSub} numberOfLines={1}>
@@ -1047,7 +1061,10 @@ Then write these prompts:
         <View style={s.chatRight}>
           <Text style={s.chatTime}>{p.time}</Text>
           {autoMsgEnabled && iv && (
-            <Text style={s.timerBadge}>⏱{iv}m</Text>
+            <View style={s.timerBadge}>
+              <Ionicons name="time-outline" size={12} color={C.textCyan} />
+              <Text style={s.timerBadgeTxt}>{iv}m</Text>
+            </View>
           )}
           {(hasAutoUnread || (p.unread ?? 0) > 0) && (
             <View style={s.badge}>
@@ -1072,7 +1089,7 @@ Then write these prompts:
             ? <View style={s.userPhotoDefault}><ActivityIndicator color="#fff" size="small" /></View>
             : userPhoto
               ? <Image source={{ uri: userPhoto }} style={s.userPhotoImg} />
-              : <View style={s.userPhotoDefault}><Text style={{ fontSize: 18 }}>👤</Text></View>
+              : <View style={s.userPhotoDefault}><Ionicons name="person-outline" size={20} color={C.textSecondary} /></View>
           }
           {!!userName && (
             <Text style={s.userNameBadge} numberOfLines={1}>{userName}</Text>
@@ -1089,7 +1106,10 @@ Then write these prompts:
             onPress={toggleOnline}
             activeOpacity={0.8}
           >
-            <Text style={s.statusPillTxt}>{isOnline ? '🌐 Online' : '📡 Offline'}</Text>
+            <View style={s.pillContent}>
+              <Ionicons name={isOnline ? 'wifi-outline' : 'cloud-offline-outline'} size={13} color={isOnline ? C.success : C.error} />
+              <Text style={[s.statusPillTxt, isOnline ? s.statusOnlineTxt : s.statusOfflineTxt]}>{isOnline ? 'Online' : 'Offline'}</Text>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity
             style={[s.wakePill, serverStatus === 'ok' && s.wakePillOk]}
@@ -1099,13 +1119,16 @@ Then write these prompts:
           >
             {wakingServer
               ? <ActivityIndicator size="small" color="#fff" style={{ width: 16, height: 16 }} />
-              : <Text style={s.wakePillTxt}>{serverStatus === 'ok' ? '✅ Server' : '🔄 Wake'}</Text>
+              : <View style={s.pillContent}>
+                  <Ionicons name={serverStatus === 'ok' ? 'checkmark-circle-outline' : 'refresh-outline'} size={13} color={serverStatus === 'ok' ? C.success : C.cyanPrimary} />
+                  <Text style={s.wakePillTxt}>{serverStatus === 'ok' ? 'Server' : 'Wake'}</Text>
+                </View>
             }
           </TouchableOpacity>
         </View>
         <View style={s.headerIcons}>
           <TouchableOpacity onPress={() => setShowSettings(true)} style={s.headerBtn}>
-            <Text style={s.headerGear}>⚙️</Text>
+            <Ionicons name="settings-outline" size={20} color={C.goldBright} />
           </TouchableOpacity>
         </View>
       </View>
@@ -1119,35 +1142,35 @@ Then write these prompts:
           keyExtractor={p => p.id}
           renderItem={renderCharRow}
           ItemSeparatorComponent={() => <View style={s.sep} />}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={s.listContent}
         />
       )}
 
       {/* Floating action buttons */}
       <View style={[s.fab, { bottom: insets.bottom + 16 }]}>
-        <TouchableOpacity style={[s.fabBtn, { backgroundColor: '#E91E8C' }]} onPress={() => router.push('/prompt-image')}>
-          <Text style={s.fabIcon}>🎨</Text>
-          <Text style={[s.fabLabel, { color: '#fff' }]}>Text→Img</Text>
+        <TouchableOpacity style={[s.fabBtn, s.fabQuiet]} onPress={() => router.push('/prompt-image')}>
+          <Ionicons name="color-palette-outline" style={s.fabIcon} color={C.cyanPrimary} />
+          <Text style={s.fabLabel}>Text→Img</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[s.fabBtn, { backgroundColor: '#00897B' }]} onPress={() => setShowAddCharModal(true)}>
-          <Text style={[s.fabIcon, { color: '#fff' }]}>➕</Text>
-          <Text style={[s.fabLabel, { color: '#fff' }]}>Character</Text>
+        <TouchableOpacity style={[s.fabBtn, s.fabPrimary]} onPress={() => setShowAddCharModal(true)}>
+          <Ionicons name="person-add-outline" style={s.fabIcon} color={C.textOnGold} />
+          <Text style={[s.fabLabel, s.fabPrimaryLabel]}>Character</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={s.fabBtn} onPress={() => setShowGroupModal(true)}>
-          <Text style={s.fabIcon}>👥</Text>
-          <Text style={s.fabLabel}>Group</Text>
+        <TouchableOpacity style={[s.fabBtn, s.fabSecondary]} onPress={() => setShowGroupModal(true)}>
+          <Ionicons name="people-outline" style={s.fabIcon} color={C.textOnCyan} />
+          <Text style={[s.fabLabel, s.fabSecondaryLabel]}>Group</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[s.fabBtn, { backgroundColor: '#4A1D96' }]} onPress={handlePhotoToScript}>
+        <TouchableOpacity style={[s.fabBtn, s.fabQuiet]} onPress={handlePhotoToScript}>
           <Image source={require('../assets/images/photo-to-script-icon.png')} style={s.fabScriptImg} />
-          <Text style={[s.fabLabel, { color: '#e9d5ff', fontSize: 9 }]}>Script</Text>
+          <Text style={s.fabLabel}>Script</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[s.fabBtn, { backgroundColor: '#6A1B9A' }]} onPress={() => router.push('/face-swap')}>
-          <Text style={s.fabIcon}>🤳</Text>
-          <Text style={[s.fabLabel, { color: '#fff' }]}>Swap</Text>
+        <TouchableOpacity style={[s.fabBtn, s.fabQuiet]} onPress={() => router.push('/face-swap')}>
+          <Ionicons name="camera-reverse-outline" style={s.fabIcon} color={C.goldBright} />
+          <Text style={s.fabLabel}>Swap</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[s.fabBtn, { backgroundColor: '#1565C0' }]} onPress={() => router.push('/home')}>
-          <Text style={s.fabIcon}>☁️</Text>
-          <Text style={[s.fabLabel, { color: '#fff' }]}>Cloud</Text>
+        <TouchableOpacity style={[s.fabBtn, s.fabQuiet]} onPress={() => router.push('/home')}>
+          <Ionicons name="cloud-outline" style={s.fabIcon} color={C.cyanPrimary} />
+          <Text style={s.fabLabel}>Cloud</Text>
         </TouchableOpacity>
       </View>
 
@@ -1258,7 +1281,10 @@ Then write these prompts:
           <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowSettings(false)} />
           <View style={[s.settingsSheet, { paddingBottom: insets.bottom + 8 }]}>
             <View style={s.settingsHandle} />
-            <Text style={s.settingsTitle}>⚙️ Settings</Text>
+            <View style={s.settingsTitleRow}>
+              <Ionicons name="settings-outline" size={20} color={colors.goldPrimary} />
+              <Text style={s.settingsTitle}>Settings</Text>
+            </View>
 
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: '85%' }}>
 
@@ -1266,7 +1292,10 @@ Then write these prompts:
               <View style={s.settingsSection}>
                 <View style={s.settingsRow}>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.settingsRowTitle}>🌐 Online Mode</Text>
+                    <View style={s.settingsRowHeading}>
+                      <Ionicons name="globe-outline" size={17} color={colors.cyanPrimary} />
+                      <Text style={s.settingsRowTitle}>Online Mode</Text>
+                    </View>
                     <Text style={s.settingsRowSub}>
                       {isOnline ? 'Gemini API வழியா chat' : 'Offline / Gemma mode'}
                     </Text>
@@ -1279,16 +1308,19 @@ Then write these prompts:
               <View style={s.settingsSection}>
                 <View style={s.settingsRow}>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.settingsRowTitle}>💬 Auto Message</Text>
+                    <View style={s.settingsRowHeading}>
+                      <Ionicons name="chatbubble-ellipses-outline" size={17} color={colors.cyanPrimary} />
+                      <Text style={s.settingsRowTitle}>Auto Message</Text>
+                    </View>
                     <Text style={s.settingsRowSub}>
                       App close ஆனாலும் push notification வரும்
                     </Text>
                     {autoMsgEnabled && (
                       <View style={s.pushStatusRow}>
-                        {pushStatus === 'active'      && <Text style={[s.pushBadge, { backgroundColor: '#1B5E20' }]}>🔔 Notifications Active</Text>}
-                        {pushStatus === 'subscribing' && <Text style={[s.pushBadge, { backgroundColor: '#E65100' }]}>⏳ Enabling...</Text>}
-                        {pushStatus === 'denied'      && <Text style={[s.pushBadge, { backgroundColor: '#B71C1C' }]}>🔕 Permission Denied — Edge Settings-ல் allow பண்ணுங்க</Text>}
-                        {pushStatus === 'unsupported' && <Text style={[s.pushBadge, { backgroundColor: '#555' }]}>⚠️ This browser doesn't support push</Text>}
+                        {pushStatus === 'active'      && <Text style={[s.pushBadge, { backgroundColor: colors.success }]}>🔔 Notifications Active</Text>}
+                        {pushStatus === 'subscribing' && <Text style={[s.pushBadge, { backgroundColor: colors.warning }]}>⏳ Enabling...</Text>}
+                        {pushStatus === 'denied'      && <Text style={[s.pushBadge, { backgroundColor: colors.error }]}>🔕 Permission Denied — Edge Settings-ல் allow பண்ணுங்க</Text>}
+                        {pushStatus === 'unsupported' && <Text style={[s.pushBadge, { backgroundColor: colors.textMuted }]}>⚠️ This browser doesn't support push</Text>}
                       </View>
                     )}
                   </View>
@@ -1331,7 +1363,10 @@ Then write these prompts:
 
               {/* 3. Gemma AI */}
               <View style={s.settingsSection}>
-                <Text style={s.settingsRowTitle}>🧠 Gemma AI (Offline)</Text>
+                <View style={s.settingsRowHeading}>
+                  <Ionicons name="hardware-chip-outline" size={17} color={colors.cyanPrimary} />
+                  <Text style={s.settingsRowTitle}>Gemma AI (Offline)</Text>
+                </View>
                 <View style={s.gemmaStatusRow}>
                   {isWebGPUSupported()
                     ? isModelCached()
@@ -1344,7 +1379,10 @@ Then write these prompts:
 
               {/* 4. Ringtone */}
               <View style={s.settingsSection}>
-                <Text style={s.settingsRowTitle}>🔔 Notification Ringtone</Text>
+                <View style={s.settingsRowHeading}>
+                  <Ionicons name="notifications-outline" size={17} color={colors.cyanPrimary} />
+                  <Text style={s.settingsRowTitle}>Notification Ringtone</Text>
+                </View>
                 <Text style={s.settingsRowSub}>Auto-message வரும்போது play ஆகும்</Text>
                 <View style={s.ringtoneGrid}>
                   {RINGTONES.map(r => (
@@ -1353,11 +1391,15 @@ Then write these prompts:
                       style={[s.ringtoneBtn, ringtone === r.id && s.ringtoneBtnActive]}
                       onPress={() => pickRingtone(r.id)}
                     >
-                      <Text style={s.ringtoneEmoji}>{r.emoji}</Text>
+                      <Ionicons
+                        name={RINGTONE_ICONS[r.id]}
+                        size={16}
+                        color={ringtone === r.id ? colors.cyanBright : colors.textTertiary}
+                      />
                       <Text style={[s.ringtoneTxt, ringtone === r.id && s.ringtoneTxtActive]}>
                         {r.label}
                       </Text>
-                      {ringtone === r.id && <Text style={s.ringtoneCheck}>✓</Text>}
+                      {ringtone === r.id && <Ionicons name="checkmark" size={14} color={colors.cyanBright} />}
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -1365,17 +1407,26 @@ Then write these prompts:
 
               {/* 5. PIN Lock */}
               <View style={s.settingsSection}>
-                <Text style={s.settingsRowTitle}>🔒 App PIN Lock</Text>
+                <View style={s.settingsRowHeading}>
+                  <Ionicons name="lock-closed-outline" size={17} color={colors.goldPrimary} />
+                  <Text style={s.settingsRowTitle}>App PIN Lock</Text>
+                </View>
                 <Text style={s.settingsRowSub}>
                   {existingPin ? '✅ PIN set ஆகிருக்கு — மற்றவங்க திறக்க முடியாது' : 'PIN இல்லை — யாரும் திறக்கலாம்'}
                 </Text>
                 <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
                   <TouchableOpacity style={s.pinBtn} onPress={openPinSetup}>
-                    <Text style={s.pinBtnTxt}>{existingPin ? '🔄 PIN மாத்து' : '🔒 PIN Set பண்ணு'}</Text>
+                    <View style={s.inlineButtonContent}>
+                      <Ionicons name={existingPin ? 'key-outline' : 'lock-closed-outline'} size={16} color={colors.textOnGold} />
+                      <Text style={s.pinBtnTxt}>{existingPin ? 'PIN மாத்து' : 'PIN Set பண்ணு'}</Text>
+                    </View>
                   </TouchableOpacity>
                   {existingPin && (
-                    <TouchableOpacity style={[s.pinBtn, { backgroundColor: '#fdecea' }]} onPress={removePin}>
-                      <Text style={[s.pinBtnTxt, { color: '#c62828' }]}>🗑 Remove</Text>
+                    <TouchableOpacity style={[s.pinBtn, s.pinRemoveBtn]} onPress={removePin}>
+                      <View style={s.inlineButtonContent}>
+                        <Ionicons name="trash-outline" size={16} color={colors.error} />
+                        <Text style={[s.pinBtnTxt, s.pinRemoveTxt]}>Remove</Text>
+                      </View>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -1384,11 +1435,18 @@ Then write these prompts:
             </ScrollView>
 
             <TouchableOpacity style={s.keysShortcut} onPress={() => { setShowSettings(false); router.push('/keys'); }}>
-              <Text style={s.keysShortcutTxt}>🔑 Keys & Accounts</Text>
+              <View style={s.inlineButtonContent}>
+                <Ionicons name="key-outline" size={17} color={colors.goldBright} />
+                <Text style={s.keysShortcutTxt}>Keys & Accounts</Text>
+                <Ionicons name="arrow-forward" size={16} color={colors.goldBright} />
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity style={s.settingsClose} onPress={() => setShowSettings(false)}>
-              <Text style={s.settingsCloseTxt}>✓ Done</Text>
+              <View style={s.inlineButtonContent}>
+                <Ionicons name="checkmark-circle-outline" size={18} color={colors.textOnGold} />
+                <Text style={s.settingsCloseTxt}>Done</Text>
+              </View>
             </TouchableOpacity>
           </View>
         </View>
@@ -1399,9 +1457,12 @@ Then write these prompts:
         onRequestClose={() => setShowPinSetup(false)}>
         <View style={s.pinOverlay}>
           <View style={s.pinBox}>
-            <Text style={s.pinTitle}>
-              {pinStep === 'set' ? '🔒 New PIN Set பண்ணு' : '🔒 PIN Confirm பண்ணு'}
-            </Text>
+            <View style={s.pinTitleRow}>
+              <Ionicons name="lock-closed-outline" size={19} color={colors.goldPrimary} />
+              <Text style={s.pinTitle}>
+                {pinStep === 'set' ? 'New PIN Set பண்ணு' : 'PIN Confirm பண்ணு'}
+              </Text>
+            </View>
             <Text style={s.pinSub}>4 digits enter பண்ணுங்க</Text>
 
             {/* 4 dots */}
@@ -1440,24 +1501,39 @@ Then write these prompts:
             <Text style={s.editProf}>💼 {editingPersona?.profession}</Text>
             <TextInput style={s.editInput} value={relInput} onChangeText={setRelInput}
               placeholder="உதா: தங்கை, மனைவி, காதலி..." placeholderTextColor="#aaa" autoFocus />
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity style={s.cancelBtn} onPress={() => setShowEditRel(false)}>
-                <Text style={s.cancelTxt}>Cancel</Text>
+            <View style={s.editActions}>
+              <TouchableOpacity style={[s.relationshipActionBtn, s.cancelAction]} onPress={() => setShowEditRel(false)}>
+                <View style={s.actionButtonContent}>
+                  <Ionicons name="close-outline" size={16} color={C.textSecondary} />
+                  <Text style={[s.actionButtonText, { color: C.textSecondary }]}>Cancel</Text>
+                </View>
               </TouchableOpacity>
-              <TouchableOpacity style={s.saveBtn} onPress={() => { saveRelationship(); if (editingPersona) { ParamsStore.setEditPersonaId(editingPersona.id); router.push('/edit-character'); } }}>
-                <Text style={s.saveTxt}>📷 Profile Edit</Text>
+              <TouchableOpacity style={[s.relationshipActionBtn, s.profileEditAction]} onPress={() => { saveRelationship(); if (editingPersona) { ParamsStore.setEditPersonaId(editingPersona.id); router.push('/edit-character'); } }}>
+                <View style={s.actionButtonContent}>
+                  <Ionicons name="create-outline" size={16} color={C.textOnGold} />
+                  <Text style={[s.actionButtonText, { color: C.textOnGold }]}>Profile Edit</Text>
+                </View>
               </TouchableOpacity>
-              <TouchableOpacity style={s.saveBtn} onPress={saveRelationship}>
-                <Text style={s.saveTxt}>சேமி ✓</Text>
+              <TouchableOpacity style={[s.relationshipActionBtn, s.saveRelationshipAction]} onPress={saveRelationship}>
+                <View style={s.actionButtonContent}>
+                  <Ionicons name="checkmark-outline" size={16} color={C.textOnCyan} />
+                  <Text style={[s.actionButtonText, { color: C.textOnCyan }]}>சேமி</Text>
+                </View>
               </TouchableOpacity>
-              <TouchableOpacity style={s.saveBtn} onPress={() => {
+              <TouchableOpacity style={[s.relationshipActionBtn, s.urlsAction]} onPress={() => {
                 setShowEditRel(false);
                 if (editingPersona) openUrlSettings(editingPersona);
               }}>
-                <Text style={s.saveTxt}>🔗 URLs</Text>
+                <View style={s.actionButtonContent}>
+                  <Ionicons name="link-outline" size={16} color={C.cyanPrimary} />
+                  <Text style={[s.actionButtonText, { color: C.textCyan }]}>URLs</Text>
+                </View>
               </TouchableOpacity>
-              <TouchableOpacity style={[s.saveBtn, { backgroundColor: '#c62828' }]} onPress={deleteCharacter}>
-                <Text style={s.saveTxt}>🗑 Delete</Text>
+              <TouchableOpacity style={[s.relationshipActionBtn, s.destructiveAction]} onPress={deleteCharacter}>
+                <View style={s.actionButtonContent}>
+                  <Ionicons name="trash-outline" size={16} color={C.textPrimary} />
+                  <Text style={[s.actionButtonText, { color: C.textPrimary }]}>Delete</Text>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -1482,7 +1558,7 @@ Then write these prompts:
               ) : null}
             </View>
             <TouchableOpacity
-              style={[s.scriptCopyBtn, scriptCopied && { backgroundColor:'#15803d' }]}
+              style={[s.scriptCopyBtn, scriptCopied && { backgroundColor: colors.success }]}
               onPress={async () => {
                 if (!scriptText) return;
                 try {
@@ -1506,7 +1582,7 @@ Then write these prompts:
           <ScrollView style={s.scriptScroll} contentContainerStyle={{ padding:16, paddingBottom:40 }}>
             {scriptLoading ? (
               <View style={s.scriptLoading}>
-                <ActivityIndicator size="large" color="#7C3AED" />
+                <ActivityIndicator size="large" color={colors.cyanPrimary} />
                 <Text style={s.scriptLoadTxt}>{scriptText || '📸 Image analyze பண்றேன்...'}</Text>
                 <View style={s.scriptModelRow}>
                   <Text style={s.scriptModelStep}>All 13 Gemini keys auto-retry</Text>
@@ -1523,7 +1599,7 @@ Then write these prompts:
               <Text style={s.scriptNewTxt}>🖼️ New Photo</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[s.scriptCopyFooterBtn, scriptCopied && { backgroundColor:'#15803d' }]}
+              style={[s.scriptCopyFooterBtn, scriptCopied && { backgroundColor: colors.success }]}
               onPress={async () => {
                 if (!scriptText) return;
                 try {
@@ -1599,7 +1675,7 @@ Then write these prompts:
         onRequestClose={() => setShowGroupModal(false)}>
         <View style={s.overlay}>
           <View style={s.sheet}>
-            <Text style={s.sheetTitle}>👥 Group Chat</Text>
+            <Text style={s.sheetTitle}>Group Chat</Text>
             <Text style={s.sheetSub}>2+ characters select பண்ணுங்க</Text>
             <ScrollView style={{ maxHeight: 380 }}>
               {personas.map(p => {
@@ -1617,7 +1693,7 @@ Then write these prompts:
                       <Text style={s.sheetName}>{p.name}</Text>
                       <Text style={s.sheetRel}>{p.editedRelationship ?? p.relationship} · {p.profession}</Text>
                     </View>
-                    {sel && <Text style={s.check}>✓</Text>}
+                    {sel && <Ionicons name="checkmark-circle" size={22} color={C.cyanPrimary} />}
                   </TouchableOpacity>
                 );
               })}
@@ -1641,37 +1717,37 @@ Then write these prompts:
         <View style={s.overlay}>
           <ScrollView style={{ width: '100%' }} contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
             keyboardShouldPersistTaps="handled">
-            <View style={[s.profileSheet, { padding: 20 }]}>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#075E54', marginBottom: 14 }}>
-                ➕ புது Character
+              <View style={[s.profileSheet, s.addCharacterSheet]}>
+              <Text style={s.addCharacterTitle}>
+                புது Character
               </Text>
 
-              <Text style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>பெயர் *</Text>
-              <TextInput style={s.profileInput} value={newCharName} onChangeText={setNewCharName}
+              <Text style={s.addCharacterLabel}>பெயர் *</Text>
+              <TextInput style={s.addCharacterInput} value={newCharName} onChangeText={setNewCharName}
                 placeholder="உதா: ரஞ்சினி" placeholderTextColor="#aaa" />
 
-              <Text style={{ fontSize: 12, color: '#666', marginBottom: 4, marginTop: 10 }}>Relationship (Role)</Text>
-              <TextInput style={s.profileInput} value={newCharRole} onChangeText={setNewCharRole}
+              <Text style={s.addCharacterLabel}>Relationship (Role)</Text>
+              <TextInput style={s.addCharacterInput} value={newCharRole} onChangeText={setNewCharRole}
                 placeholder="உதா: காதலி, தோழி, அக்கா, மனைவி..." placeholderTextColor="#aaa" />
 
-              <Text style={{ fontSize: 12, color: '#666', marginBottom: 4, marginTop: 10 }}>Profession</Text>
-              <TextInput style={s.profileInput} value={newCharSub} onChangeText={setNewCharSub}
+              <Text style={s.addCharacterLabel}>Profession</Text>
+              <TextInput style={s.addCharacterInput} value={newCharSub} onChangeText={setNewCharSub}
                 placeholder="உதா: Doctor, Teacher, Engineer..." placeholderTextColor="#aaa" />
 
-              <Text style={{ fontSize: 12, color: '#666', marginBottom: 4, marginTop: 10 }}>Description (வருணனை)</Text>
-              <TextInput style={[s.profileInput, { minHeight: 70 }]} value={newCharDesc}
+              <Text style={s.addCharacterLabel}>Description (வருணனை)</Text>
+              <TextInput style={[s.addCharacterInput, { minHeight: 70 }]} value={newCharDesc}
                 onChangeText={setNewCharDesc} multiline numberOfLines={3}
                 placeholder="உதா: 28 வயது, கோவை பொண்ணு. அன்பான, caring personality..."
                 placeholderTextColor="#aaa" textAlignVertical="top" />
 
-              <Text style={{ fontSize: 12, color: '#666', marginBottom: 4, marginTop: 10 }}>Personality (குணம்)</Text>
-              <TextInput style={[s.profileInput, { minHeight: 70 }]} value={newCharPersonality}
+              <Text style={s.addCharacterLabel}>Personality (குணம்)</Text>
+              <TextInput style={[s.addCharacterInput, { minHeight: 70 }]} value={newCharPersonality}
                 onChangeText={setNewCharPersonality} multiline numberOfLines={3}
                 placeholder="உதா: Normal mode-ல் shy-ஆ பேசுவா, presana mode-ல் bold-ஆ..."
                 placeholderTextColor="#aaa" textAlignVertical="top" />
 
-              <Text style={{ fontSize: 10, color: '#888', marginTop: 8, marginBottom: 12, lineHeight: 15 }}>
-                {'📁 Cloudinary: character ID folder + '}{photoStyles.length}{' master style folders auto-create ஆகும்'}{' | 💾 AsyncStorage-ல் save ஆகும்'}
+              <Text style={s.addCharacterHint}>
+                {'Cloudinary: character ID folder + '}{photoStyles.length}{' master style folders auto-create ஆகும் | AsyncStorage-ல் save ஆகும்'}
               </Text>
 
               <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -1683,7 +1759,7 @@ Then write these prompts:
                   <Text style={s.cancelTxt}>Cancel</Text>
                 </Pressable>
                 <Pressable style={s.saveBtn} onPress={saveNewCharacter}>
-                  <Text style={s.saveTxt}>💾 Save</Text>
+                  <Text style={s.saveTxt}>Save</Text>
                 </Pressable>
               </View>
             </View>
@@ -1695,26 +1771,27 @@ Then write these prompts:
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#ECE5DD' },
+  safe: { flex: 1, backgroundColor: C.bgPrimary },
 
   header: {
-    backgroundColor: '#128C7E',
+    backgroundColor: C.bgSecondary,
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 12, paddingVertical: 14,
     gap: 10,
-    elevation: 4,
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 3, shadowOffset: { width: 0, height: 2 },
+    borderBottomWidth: 1, borderBottomColor: C.glassGoldBorder,
+    elevation: 3,
+    shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 3 },
   },
   userAvatarBtn: { alignItems: 'center', gap: 2, minWidth: 48 },
-  userPhotoImg: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: '#fff' },
+  userPhotoImg: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: C.goldPrimary },
   userPhotoDefault: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: C.cardSecondary,
     justifyContent: 'center', alignItems: 'center',
-    borderWidth: 2, borderColor: '#fff',
+    borderWidth: 2, borderColor: C.borderGold,
   },
   userNameBadge: {
-    color: '#fff', fontSize: 9, fontWeight: '700',
+    color: C.textSecondary, fontSize: 9, fontWeight: '700',
     maxWidth: 60, textAlign: 'center',
   },
 
@@ -1774,7 +1851,7 @@ const s = StyleSheet.create({
   },
   profileSaveBtnTxt: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 
-  headerTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold', paddingLeft: 4, letterSpacing: 0.3 },
+  headerTitle: { color: C.textPrimary, fontSize: 22, fontWeight: 'bold', paddingLeft: 4, letterSpacing: 0.3 },
   headerIcons: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   headerCharBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
@@ -1783,103 +1860,135 @@ const s = StyleSheet.create({
   },
   headerCharIcon: { fontSize: 12, color: '#fff' },
   headerCharTxt: { fontSize: 12, color: '#fff', fontWeight: '700' },
-  headerBtn: { padding: 6 },
+  headerBtn: { padding: 8, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   headerGear: { fontSize: 20 },
-  buildBadge: { backgroundColor: '#7C3AED', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
-  buildBadgeTxt: { color: '#fff', fontSize: 10, fontWeight: '800' },
-  statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  wakePill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: '#1a3a5c', justifyContent: 'center', alignItems: 'center' },
-  wakePillOk: { backgroundColor: '#1B5E20' },
-  wakePillTxt: { color: '#fff', fontSize: 11, fontWeight: '600' },
-  statusOnline: { backgroundColor: '#1B5E20' },
-  statusOffline: { backgroundColor: '#B71C1C' },
-  statusPillTxt: { color: '#fff', fontSize: 11, fontWeight: '600' },
+  buildBadge: { backgroundColor: C.cardSecondary, paddingHorizontal: 7, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: C.glassGoldBorder },
+  buildBadgeTxt: { color: C.goldBright, fontSize: 10, fontWeight: '800' },
+  statusPill: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 10, backgroundColor: C.bgTertiary, borderWidth: 1, borderColor: C.border },
+  pillContent: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  wakePill: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 10, backgroundColor: C.cardSecondary, borderWidth: 1, borderColor: C.border, justifyContent: 'center', alignItems: 'center' },
+  wakePillOk: { borderColor: C.success },
+  wakePillTxt: { color: C.textSecondary, fontSize: 11, fontWeight: '600' },
+  statusOnline: { borderColor: C.success },
+  statusOffline: { borderColor: C.error },
+  statusPillTxt: { color: C.textSecondary, fontSize: 11, fontWeight: '600' },
+  statusOnlineTxt: { color: C.success },
+  statusOfflineTxt: { color: C.error },
   pushStatusRow: { marginTop: 6 },
-  pushBadge: { color: '#fff', fontSize: 11, fontWeight: '600', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start' },
+  pushBadge: { color: C.textOnCyan, fontSize: 11, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start' },
 
-  loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.bgPrimary },
 
+  listContent: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 112 },
   chatRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 12,
+    backgroundColor: C.card, paddingHorizontal: 14, paddingVertical: 12,
+    borderRadius: 16, borderWidth: 1, borderColor: C.borderSubtle,
   },
   avatar: { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
   avatarImg: { width: 52, height: 52, borderRadius: 26 },
   avatarTxt: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   chatMid: { flex: 1 },
   chatNameRow: { flexDirection: 'row', alignItems: 'center', minWidth: 0, marginBottom: 3 },
-  chatName: { flexShrink: 1, fontSize: 16, fontWeight: '700', color: '#111' },
-  chatSub: { fontSize: 13, color: '#666' },
+  chatName: { flexShrink: 1, fontSize: 16, fontWeight: '700', color: C.textPrimary },
+  chatSub: { fontSize: 13, color: C.textTertiary },
   chatRight: { alignItems: 'flex-end', gap: 4 },
-  urlSettingsBtn: { paddingHorizontal: 4, paddingVertical: 2 },
+  urlSettingsBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginLeft: 2 },
   urlSettingsTxt: { fontSize: 17 },
-  chatTime: { fontSize: 12, color: '#888' },
-  timerBadge: { fontSize: 10, color: '#075E54', fontWeight: '700' },
-  badge: { backgroundColor: '#25D366', borderRadius: 10, minWidth: 20, height: 20, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
-  badgeTxt: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
-  sep: { height: 1, backgroundColor: '#f0f0f0', marginLeft: 80 },
+  chatTime: { fontSize: 12, color: C.textTertiary },
+  timerBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8, backgroundColor: C.cyanSoft },
+  timerBadgeTxt: { fontSize: 10, color: C.textCyan, fontWeight: '700' },
+  badge: { backgroundColor: C.cyanPrimary, borderRadius: 10, minWidth: 20, height: 20, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
+  badgeTxt: { color: C.textOnCyan, fontSize: 11, fontWeight: 'bold' },
+  sep: { height: 10, backgroundColor: 'transparent' },
 
-  fab: { position: 'absolute', right: 12, bottom: 20, gap: 10, alignItems: 'center' },
+  fab: { position: 'absolute', right: 12, bottom: 20, gap: 8, alignItems: 'center' },
   fabBtn: {
-    backgroundColor: '#fff', borderRadius: 12,
-    paddingVertical: 8, paddingHorizontal: 10,
-    alignItems: 'center', elevation: 4,
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
-    minWidth: 64, width: 64,
+    backgroundColor: C.card, borderRadius: 14,
+    paddingVertical: 8, paddingHorizontal: 8,
+    alignItems: 'center', elevation: 3,
+    shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5, shadowOffset: { width: 0, height: 2 },
+    minWidth: 68, width: 68, borderWidth: 1, borderColor: C.borderSubtle,
   },
+  fabPrimary: { backgroundColor: C.buttonGold, borderColor: C.goldBright },
+  fabSecondary: { backgroundColor: C.buttonCyan, borderColor: C.cyanBright },
+  fabQuiet: { backgroundColor: C.card, borderColor: C.glassGoldBorder },
   fabIcon: { fontSize: 20 },
-  fabLabel: { fontSize: 10, fontWeight: '700', color: '#333', marginTop: 2 },
+  fabLabel: { fontSize: 10, fontWeight: '700', color: C.textPrimary, marginTop: 2 },
+  fabPrimaryLabel: { color: C.textOnGold },
+  fabSecondaryLabel: { color: C.textOnCyan },
   fabScriptImg: { width: 28, height: 28, borderRadius: 6 },
 
   // ── Photo to Script Modal ──
-  scriptSafe: { flex: 1, backgroundColor: '#0f0f1a' },
+  scriptSafe: { flex: 1, backgroundColor: C.bgPrimary },
   scriptHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 14, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#1f2937',
+    borderBottomWidth: 1, borderBottomColor: C.borderSubtle,
   },
   scriptBack: { padding: 6 },
-  scriptBackTxt: { color: '#9ca3af', fontSize: 18, fontWeight: '700' },
+  scriptBackTxt: { color: C.textTertiary, fontSize: 18, fontWeight: '700' },
   scriptHeaderIcon: { width: 28, height: 28, borderRadius: 6 },
-  scriptHeaderTitle: { color: '#e9d5ff', fontSize: 16, fontWeight: '800' },
+  scriptHeaderTitle: { color: C.goldLight, fontSize: 16, fontWeight: '800' },
   scriptCopyBtn: {
-    backgroundColor: '#4A1D96', borderRadius: 10,
+    backgroundColor: C.buttonGold, borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 6,
   },
-  scriptCopyTxt: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  scriptCopyTxt: { color: C.textOnGold, fontSize: 12, fontWeight: '700' },
   scriptPreviewImg: { width: '100%', height: 180 },
   scriptScroll: { flex: 1 },
   scriptLoading: { alignItems: 'center', paddingTop: 40, gap: 12 },
-  scriptLoadTxt: { color: '#c4b5fd', fontSize: 15, fontWeight: '600', marginTop: 8 },
-  scriptBody: { color: '#e5e7eb', fontSize: 14, lineHeight: 22 },
-  scriptFooter: { padding: 14, borderTopWidth: 1, borderTopColor: '#1f2937' },
+  scriptLoadTxt: { color: C.goldLight, fontSize: 15, fontWeight: '600', marginTop: 8 },
+  scriptBody: { color: C.textSecondary, fontSize: 14, lineHeight: 22 },
+  scriptFooter: {
+    flexDirection: 'row', gap: 10, padding: 14,
+    borderTopWidth: 1, borderTopColor: C.borderSubtle,
+  },
+  scriptNewBtn: {
+    flex: 1, backgroundColor: C.buttonSecondary, borderRadius: 12,
+    paddingVertical: 12, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: C.border,
+  },
+  scriptNewTxt: { color: C.textSecondary, fontSize: 14, fontWeight: '700' },
+  scriptCopyFooterBtn: {
+    flex: 1, backgroundColor: C.buttonGold, borderRadius: 12,
+    paddingVertical: 12, alignItems: 'center', justifyContent: 'center',
+  },
+  scriptCopyFooterTxt: { color: C.textOnGold, fontSize: 14, fontWeight: '800' },
   scriptRetryBtn: {
-    backgroundColor: '#1f2937', borderRadius: 12, borderWidth: 1, borderColor: '#374151',
+    backgroundColor: C.cardSecondary, borderRadius: 12, borderWidth: 1, borderColor: C.border,
     paddingVertical: 12, alignItems: 'center',
   },
-  scriptRetryTxt: { color: '#9ca3af', fontSize: 14, fontWeight: '600' },
+  scriptRetryTxt: { color: C.textTertiary, fontSize: 14, fontWeight: '600' },
 
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  overlay: { flex: 1, backgroundColor: C.overlay, justifyContent: 'center', alignItems: 'center' },
 
   // ── Settings Sheet ──
-  settingsOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  settingsOverlay: { flex: 1, backgroundColor: C.overlay, justifyContent: 'flex-end' },
   settingsSheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: C.leatherBlack, borderTopLeftRadius: 26, borderTopRightRadius: 26,
     paddingTop: 12, paddingHorizontal: 20, paddingBottom: 0,
-    maxHeight: '80%',
+    maxHeight: '88%', borderWidth: 1, borderColor: C.glassGoldBorder,
+    borderBottomWidth: 0,
   },
   settingsHandle: {
-    width: 40, height: 4, backgroundColor: '#ddd', borderRadius: 2,
-    alignSelf: 'center', marginBottom: 14,
+    width: 42, height: 4, backgroundColor: C.textMuted, borderRadius: 2,
+    alignSelf: 'center', marginBottom: 16,
   },
-  settingsTitle: { fontSize: 20, fontWeight: 'bold', color: '#111', marginBottom: 16 },
+  settingsTitleRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 9,
+    marginBottom: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: C.borderSubtle,
+  },
+  settingsTitle: { fontSize: 20, fontWeight: '700', color: C.textPrimary },
   settingsSection: {
-    borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
-    paddingVertical: 16,
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.borderSubtle,
+    borderRadius: 16, padding: 14, marginBottom: 10,
   },
   settingsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  settingsRowTitle: { fontSize: 15, fontWeight: '700', color: '#111', marginBottom: 3 },
-  settingsRowSub: { fontSize: 12, color: '#777' },
+  settingsRowHeading: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 },
+  settingsRowTitle: { fontSize: 15, fontWeight: '700', color: C.textPrimary },
+  settingsRowSub: { fontSize: 12, color: C.textTertiary, lineHeight: 18 },
+  inlineButtonContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
 
   // ── Custom Toggle ──
   toggle: {
@@ -1887,37 +1996,38 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 4, overflow: 'hidden',
   },
-  toggleOn: { backgroundColor: '#25D366' },
-  toggleOff: { backgroundColor: '#EF5350' },
+  toggleOn: { backgroundColor: C.buttonCyan },
+  toggleOff: { backgroundColor: C.error },
   toggleDot: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: '#fff',
+    width: 28, height: 28, borderRadius: 14, backgroundColor: C.textPrimary,
     elevation: 2, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 3, shadowOffset: { width: 0, height: 1 },
   },
   toggleDotRight: { marginLeft: 'auto' as any },
   toggleDotLeft: { marginRight: 'auto' as any },
-  toggleLabel: { color: '#fff', fontSize: 11, fontWeight: '800', marginRight: 2 },
+  toggleLabel: { color: C.textOnCyan, fontSize: 11, fontWeight: '800', marginRight: 2 },
 
   // ── Auto-message intervals ──
   intervalList: { marginTop: 14, gap: 10 },
-  intervalHeading: { fontSize: 13, fontWeight: '700', color: '#444', marginBottom: 4 },
+  intervalHeading: { fontSize: 13, fontWeight: '700', color: C.textSecondary, marginBottom: 4 },
   intervalRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#f9f9f9', borderRadius: 10, padding: 8,
+    backgroundColor: C.cardSecondary, borderWidth: 1, borderColor: C.borderSubtle,
+    borderRadius: 12, padding: 8,
   },
   intervalAvatar: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   intervalAvatarImg: { width: 32, height: 32, borderRadius: 16 },
   intervalAvatarTxt: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
-  intervalName: { flex: 1, fontSize: 13, fontWeight: '600', color: '#333' },
+  intervalName: { flex: 1, fontSize: 13, fontWeight: '600', color: C.textPrimary },
   intervalBtns: { flexDirection: 'row', gap: 4 },
   ivBtn: {
     paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8,
-    borderWidth: 1, borderColor: '#ddd', backgroundColor: '#fff',
+    borderWidth: 1, borderColor: C.border, backgroundColor: C.bgSecondary,
   },
-  ivBtnActive: { backgroundColor: '#075E54', borderColor: '#075E54' },
-  ivBtnOff: { backgroundColor: '#ffebee', borderColor: '#ef9a9a' },
-  ivBtnTxt: { fontSize: 11, fontWeight: '700', color: '#555' },
-  ivBtnTxtActive: { color: '#fff' },
-  ivBtnOffTxt: { color: '#c62828' },
+  ivBtnActive: { backgroundColor: C.buttonCyan, borderColor: C.cyanPrimary },
+  ivBtnOff: { backgroundColor: C.buttonDisabled, borderColor: C.border },
+  ivBtnTxt: { fontSize: 11, fontWeight: '700', color: C.textSecondary },
+  ivBtnTxtActive: { color: C.textOnCyan },
+  ivBtnOffTxt: { color: C.textTertiary },
 
   // ── Ringtone picker ──
   ringtoneGrid: {
@@ -1926,91 +2036,107 @@ const s = StyleSheet.create({
   ringtoneBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 9,
-    borderRadius: 20, borderWidth: 1.5, borderColor: '#ddd',
-    backgroundColor: '#fafafa',
+    borderRadius: 20, borderWidth: 1.5, borderColor: C.border,
+    backgroundColor: C.cardSecondary,
   },
   ringtoneBtnActive: {
-    borderColor: '#075E54', backgroundColor: '#e8f5e9',
+    borderColor: C.cyanBorder, backgroundColor: C.cyanSoft,
   },
-  ringtoneEmoji: { fontSize: 16 },
-  ringtoneTxt: { fontSize: 12, fontWeight: '600', color: '#555' },
-  ringtoneTxtActive: { color: '#075E54' },
-  ringtoneCheck: { fontSize: 12, color: '#075E54', fontWeight: '900', marginLeft: 2 },
+  ringtoneTxt: { fontSize: 12, fontWeight: '600', color: C.textSecondary },
+  ringtoneTxtActive: { color: C.textCyan },
 
   // ── Gemma status ──
-  gemmaStatusRow: { marginTop: 8, padding: 10, backgroundColor: '#f5f5f5', borderRadius: 10 },
-  gemmaStatusOk: { color: '#2e7d32', fontSize: 13, fontWeight: '600' },
-  gemmaStatusWarn: { color: '#e65100', fontSize: 13 },
-  gemmaStatusErr: { color: '#c62828', fontSize: 13 },
+  gemmaStatusRow: { marginTop: 8, padding: 10, backgroundColor: C.bgSecondary, borderRadius: 10, borderWidth: 1, borderColor: C.borderSubtle },
+  gemmaStatusOk: { color: C.success, fontSize: 13, fontWeight: '600' },
+  gemmaStatusWarn: { color: C.warning, fontSize: 13 },
+  gemmaStatusErr: { color: C.error, fontSize: 13 },
 
   // ── PIN in settings ──
   pinBtn: {
-    flex: 1, backgroundColor: '#e8f5e9', borderRadius: 10,
+    flex: 1, backgroundColor: C.buttonGold, borderRadius: 10,
     paddingVertical: 12, alignItems: 'center',
   },
-  pinBtnTxt: { color: '#075E54', fontWeight: '700', fontSize: 14 },
+  pinBtnTxt: { color: C.textOnGold, fontWeight: '700', fontSize: 14 },
+  pinRemoveBtn: { backgroundColor: C.cardSecondary, borderWidth: 1, borderColor: C.error },
+  pinRemoveTxt: { color: C.error },
 
   keysShortcut: {
-    backgroundColor: '#FEF3C7', borderRadius: 12,
+    backgroundColor: C.cardSecondary, borderRadius: 12,
     paddingVertical: 13, alignItems: 'center', marginTop: 12,
-    borderWidth: 1, borderColor: '#F59E0B',
+    borderWidth: 1, borderColor: C.glassGoldBorder,
   },
-  keysShortcutTxt: { color: '#92400E', fontSize: 15, fontWeight: 'bold' },
+  keysShortcutTxt: { color: C.goldBright, fontSize: 15, fontWeight: 'bold' },
   settingsClose: {
-    backgroundColor: '#075E54', borderRadius: 14,
+    backgroundColor: C.buttonGold, borderRadius: 14,
     paddingVertical: 15, alignItems: 'center', marginVertical: 10,
   },
-  settingsCloseTxt: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  settingsCloseTxt: { color: C.textOnGold, fontSize: 16, fontWeight: 'bold' },
 
   // ── PIN setup modal ──
-  pinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  pinBox: { backgroundColor: '#fff', borderRadius: 24, padding: 28, width: '100%', alignItems: 'center' },
-  pinTitle: { fontSize: 18, fontWeight: 'bold', color: '#111', marginBottom: 6, textAlign: 'center' },
-  pinSub: { fontSize: 13, color: '#777', marginBottom: 24, textAlign: 'center' },
+  pinOverlay: { flex: 1, backgroundColor: C.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  pinBox: { backgroundColor: C.leatherBlack, borderWidth: 1, borderColor: C.glassGoldBorder, borderRadius: 24, padding: 28, width: '100%', alignItems: 'center' },
+  pinTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 },
+  pinTitle: { fontSize: 18, fontWeight: 'bold', color: C.textPrimary, textAlign: 'center' },
+  pinSub: { fontSize: 13, color: C.textTertiary, marginBottom: 24, textAlign: 'center' },
   pinDots: { flexDirection: 'row', gap: 18, marginBottom: 16 },
-  pinDot: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: '#aaa', backgroundColor: '#fff' },
-  pinDotFilled: { backgroundColor: '#075E54', borderColor: '#075E54' },
-  pinMsg: { fontSize: 13, color: '#c62828', marginBottom: 14, textAlign: 'center' },
+  pinDot: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: C.border, backgroundColor: C.bgSecondary },
+  pinDotFilled: { backgroundColor: C.goldPrimary, borderColor: C.goldPrimary },
+  pinMsg: { fontSize: 13, color: C.error, marginBottom: 14, textAlign: 'center' },
   numpad: { flexDirection: 'row', flexWrap: 'wrap', width: 240, gap: 10, justifyContent: 'center', marginBottom: 16 },
   numKey: { width: 68, height: 56, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  numKeyActive: { backgroundColor: '#f0f0f0', elevation: 1 },
-  numKeyTxt: { fontSize: 22, fontWeight: '600', color: '#111' },
+  numKeyActive: { backgroundColor: C.cardSecondary, borderWidth: 1, borderColor: C.borderSubtle, elevation: 1 },
+  numKeyTxt: { fontSize: 22, fontWeight: '600', color: C.textPrimary },
   pinCancelBtn: { paddingVertical: 10, paddingHorizontal: 24 },
-  pinCancelTxt: { color: '#888', fontSize: 14, fontWeight: '600' },
+  pinCancelTxt: { color: C.textTertiary, fontSize: 14, fontWeight: '600' },
 
   // ── Edit Relationship ──
-  editBox: { backgroundColor: '#fff', borderRadius: 20, padding: 24, width: '88%' },
-  editTitle: { fontSize: 18, fontWeight: 'bold', color: '#075E54', marginBottom: 4 },
-  editSub: { fontSize: 13, color: '#888', marginBottom: 8 },
-  editProf: { fontSize: 13, color: '#555', marginBottom: 14, backgroundColor: '#f5f5f5', padding: 8, borderRadius: 8 },
+  editBox: { backgroundColor: C.leatherBlack, borderWidth: 1, borderColor: C.glassGoldBorder, borderRadius: 20, padding: 20, width: '90%', maxWidth: 440 },
+  editTitle: { fontSize: 18, fontWeight: 'bold', color: C.goldBright, marginBottom: 4 },
+  editSub: { fontSize: 13, color: C.textSecondary, marginBottom: 8 },
+  editProf: { fontSize: 13, color: C.textTertiary, marginBottom: 14, backgroundColor: C.cardSecondary, padding: 10, borderRadius: 8 },
   editInput: {
-    borderWidth: 1.5, borderColor: '#075E54', borderRadius: 12,
+    borderWidth: 1.5, borderColor: C.inputBorder, backgroundColor: C.inputBackground, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: '#111', marginBottom: 16,
+    fontSize: 15, color: C.inputText, marginBottom: 16, minHeight: 48,
   },
+  editActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  relationshipActionBtn: { flexGrow: 1, flexBasis: '46%', minWidth: '46%', minHeight: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 10 },
+  actionButtonContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  actionButtonText: { fontSize: 12, fontWeight: '700' },
+  cancelAction: { backgroundColor: C.cardSecondary, borderWidth: 1, borderColor: C.border },
+  profileEditAction: { backgroundColor: C.buttonGold },
+  saveRelationshipAction: { backgroundColor: C.buttonCyan },
+  urlsAction: { backgroundColor: C.cardSecondary, borderWidth: 1, borderColor: C.cyanBorder },
+  destructiveAction: { backgroundColor: C.error },
 
   sheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 20, width: '100%', position: 'absolute', bottom: 0,
+    backgroundColor: C.leatherBlack, borderWidth: 1, borderColor: C.glassGoldBorder, borderBottomWidth: 0,
+    borderTopLeftRadius: 22, borderTopRightRadius: 22,
+    padding: 20, paddingBottom: 28, width: '100%', position: 'absolute', bottom: 0,
   },
-  sheetTitle: { fontSize: 18, fontWeight: 'bold', color: '#075E54', marginBottom: 4 },
-  sheetSub: { fontSize: 13, color: '#888', marginBottom: 12 },
-  sheetRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 4, borderRadius: 10, marginBottom: 2 },
-  sheetRowSel: { backgroundColor: '#e8f5e9' },
+  sheetTitle: { fontSize: 18, fontWeight: 'bold', color: C.goldBright, marginBottom: 4 },
+  sheetSub: { fontSize: 13, color: C.textTertiary, marginBottom: 12 },
+  sheetRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8, minHeight: 58, borderRadius: 12, marginBottom: 4, borderWidth: 1, borderColor: 'transparent' },
+  sheetRowSel: { backgroundColor: C.cyanSoft, borderColor: C.cyanBorder },
   sheetAvatar: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   sheetAvatarImg: { width: 42, height: 42, borderRadius: 21 },
   sheetAvatarTxt: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
-  sheetName: { fontSize: 15, fontWeight: '600', color: '#111' },
-  sheetRel: { fontSize: 12, color: '#666', marginTop: 1 },
-  check: { color: '#25D366', fontSize: 20, fontWeight: 'bold' },
+  sheetName: { fontSize: 15, fontWeight: '600', color: C.textPrimary },
+  sheetRel: { fontSize: 12, color: C.textTertiary, marginTop: 1 },
+  check: { color: C.cyanPrimary, fontSize: 20, fontWeight: 'bold' },
 
   folderRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 4, borderRadius: 8, marginBottom: 2 },
   folderDot: { width: 12, height: 12, borderRadius: 6, marginRight: 12 },
   folderLabel: { flex: 1, fontSize: 15, fontWeight: '600' },
-  folderArrow: { color: '#bbb', fontSize: 22, fontWeight: 'bold' },
+  folderArrow: { color: C.textMuted, fontSize: 22, fontWeight: 'bold' },
 
-  cancelBtn: { flex: 1, padding: 14, borderRadius: 10, borderWidth: 1, borderColor: '#ccc', alignItems: 'center' },
-  cancelTxt: { color: '#555', fontWeight: '600' },
-  saveBtn: { flex: 1, padding: 14, borderRadius: 10, backgroundColor: '#075E54', alignItems: 'center' },
-  saveTxt: { color: '#fff', fontWeight: 'bold' },
+  cancelBtn: { flex: 1, minHeight: 46, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: C.border, backgroundColor: C.cardSecondary, alignItems: 'center', justifyContent: 'center' },
+  cancelTxt: { color: C.textSecondary, fontWeight: '600' },
+  saveBtn: { flex: 1, minHeight: 46, padding: 12, borderRadius: 12, backgroundColor: C.buttonGold, alignItems: 'center', justifyContent: 'center' },
+  saveTxt: { color: C.textOnGold, fontWeight: 'bold' },
+  addCharacterSheet: { backgroundColor: C.leatherBlack, borderTopColor: C.glassGoldBorder, borderColor: C.glassGoldBorder, padding: 20 },
+  addCharacterTitle: { fontSize: 18, fontWeight: 'bold', color: C.goldBright, marginBottom: 14 },
+  addCharacterLabel: { fontSize: 12, color: C.textSecondary, marginBottom: 4, marginTop: 10 },
+  addCharacterInput: { borderWidth: 1, borderColor: C.inputBorder, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11, fontSize: 15, color: C.inputText, backgroundColor: C.inputBackground, marginBottom: 2 },
+  addCharacterHint: { fontSize: 10, color: C.textTertiary, marginTop: 8, marginBottom: 12, lineHeight: 16 },
 });

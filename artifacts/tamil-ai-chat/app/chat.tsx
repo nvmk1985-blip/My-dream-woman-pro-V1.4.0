@@ -523,6 +523,11 @@ export default function ChatScreen() {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const historyLoadGenerationRef = useRef(0);
+  const historyLoadedPersonaIdRef = useRef<string | null>(null);
+  const historyWriteQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const historySaveFailureNotifiedRef = useRef(false);
+  const sendInFlightRef = useRef(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [fileLoading, setFileLoading] = useState(false);
@@ -930,34 +935,73 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
   const [showScrollBtn, setShowScrollBtn] = React.useState(false);
 
-  // Load chat history from AsyncStorage; show greeting only if no history
-  useEffect(() => {
-    if (!persona) return;
+  // Load saved messages before allowing sends. A failed read must never overwrite saved history.
+  const historyPersonaId = persona?.id;
+  const loadChatHistory = useCallback(async () => {
+    if (!historyPersonaId) return;
+    const requestId = ++historyLoadGenerationRef.current;
+    const historyKey = 'chat_history_' + historyPersonaId;
+    const greeting = { id: '0', role: 'assistant' as const, content: welcome, timestamp: new Date() };
     setHistoryLoaded(false);
-    AsyncStorage.getItem(`chat_history_${persona.id}`).then(saved => {
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved) as Array<{ id: string; role: string; content: string; timestamp: string; imageUri?: string; videoUrl?: string }>;
-          const msgs: Message[] = parsed.map(m => ({ ...m, timestamp: new Date(m.timestamp) }));
-          setMessages(msgs);
-        } catch {
-          setMessages([{ id: '0', role: 'assistant', content: welcome, timestamp: new Date() }]);
-        }
-      } else {
-        setMessages([{ id: '0', role: 'assistant', content: welcome, timestamp: new Date() }]);
-      }
-      setHistoryLoaded(true);
-    }).catch(() => {
-      setMessages([{ id: '0', role: 'assistant', content: welcome, timestamp: new Date() }]);
-      setHistoryLoaded(true);
-    });
-  }, [persona?.id]);
+    setMessages([greeting]);
 
-  // Auto-save chat history whenever messages change (keep last 200)
+    try {
+      const saved = await AsyncStorage.getItem(historyKey);
+      if (historyLoadGenerationRef.current !== requestId) return;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (!Array.isArray(parsed)) throw new Error('Invalid chat history format');
+        const loadedMessages: Message[] = parsed.map((message: any) => ({
+          ...message,
+          timestamp: new Date(message.timestamp),
+        }));
+        setMessages(loadedMessages);
+      } else {
+        setMessages([greeting]);
+      }
+      historyLoadedPersonaIdRef.current = historyPersonaId;
+      setHistoryLoaded(true);
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 100);
+    } catch {
+      if (historyLoadGenerationRef.current !== requestId) return;
+      setMessages([greeting]);
+      Alert.alert(
+        'Chat history load பிழை',
+        'சேமித்த history மாற்றப்படாமல் பாதுகாக்கப்பட்டுள்ளது. மீண்டும் முயற்சி செய்யவும்; history-ஐ நீக்க விரும்பினால் Clear Chat-ஐ பயன்படுத்தவும்.',
+        [
+          { text: 'சரி', style: 'cancel' },
+          { text: 'மீண்டும் முயற்சி', onPress: () => { void loadChatHistory(); } },
+        ],
+      );
+    }
+  }, [historyPersonaId, welcome]);
+
   useEffect(() => {
-    if (!historyLoaded || !personaId || messages.length === 0) return;
-    const toSave = messages.slice(-200);
-    AsyncStorage.setItem(`chat_history_${personaId}`, JSON.stringify(toSave)).catch(() => {});
+    if (!historyPersonaId) return;
+    void loadChatHistory();
+    return () => { historyLoadGenerationRef.current += 1; };
+  }, [historyPersonaId, loadChatHistory]);
+
+  // Serialize writes so a slower older snapshot cannot replace newer messages.
+  useEffect(() => {
+    if (!historyLoaded || !personaId || historyLoadedPersonaIdRef.current !== personaId || messages.length === 0) return;
+    const historyKey = 'chat_history_' + personaId;
+    const serialized = JSON.stringify(messages.slice(-200));
+    const write = historyWriteQueueRef.current
+      .catch(() => undefined)
+      .then(() => AsyncStorage.setItem(historyKey, serialized));
+    historyWriteQueueRef.current = write;
+    void write.then(
+      () => { historySaveFailureNotifiedRef.current = false; },
+      () => {
+        if (historySaveFailureNotifiedRef.current) return;
+        historySaveFailureNotifiedRef.current = true;
+        Alert.alert(
+          'Chat history save பிழை',
+          'Message chat-ல் இருக்கும்; ஆனால் history சாதனத்தில் சேமிக்கப்படவில்லை. Storage சரியானதும் அடுத்த message மாற்றத்தில் save மீண்டும் முயற்சிக்கப்படும்.',
+        );
+      },
+    );
   }, [messages, historyLoaded, personaId]);
 
   // Track last chat time + inject auto-message greeting if pending
@@ -1002,9 +1046,30 @@ export default function ChatScreen() {
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Clear', style: 'destructive',
-        onPress: () => {
-          if (personaId) AsyncStorage.removeItem(`chat_history_${personaId}`).catch(() => {});
-          setMessages([{ id: '0', role: 'assistant', content: welcome, timestamp: new Date() }]);
+        onPress: async () => {
+          historyLoadGenerationRef.current += 1;
+          try {
+            const clearWrite = historyWriteQueueRef.current
+              .catch(() => undefined)
+              .then(async () => {
+                if (personaId) await AsyncStorage.removeItem('chat_history_' + personaId);
+              });
+            historyWriteQueueRef.current = clearWrite;
+            await clearWrite;
+            historySaveFailureNotifiedRef.current = false;
+            setMessages([{ id: '0', role: 'assistant', content: welcome, timestamp: new Date() }]);
+            historyLoadedPersonaIdRef.current = personaId || null;
+            setHistoryLoaded(true);
+          } catch {
+            Alert.alert(
+              'Chat history clear பிழை',
+              'Saved history நீக்கப்படவில்லை; தற்போதைய messages பாதுகாக்கப்பட்டுள்ளன.',
+              [
+                { text: 'சரி', style: 'cancel' },
+                { text: 'History மீண்டும் படி', onPress: () => { void loadChatHistory(); } },
+              ],
+            );
+          }
         },
       },
     ]);
@@ -1323,7 +1388,18 @@ export default function ChatScreen() {
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
-    if (!text || loading) return;
+    if (!text || loading || sendInFlightRef.current) return;
+    if (personaId && (!historyLoaded || historyLoadedPersonaIdRef.current !== personaId)) {
+      Alert.alert(
+        'Chat history இன்னும் தயாராகவில்லை',
+        'History படிக்கப்படும் வரை message அனுப்பப்படவில்லை. மீண்டும் முயற்சி செய்யவும்.',
+        [
+          { text: 'சரி', style: 'cancel' },
+          { text: 'மீண்டும் முயற்சி', onPress: () => { void loadChatHistory(); } },
+        ],
+      );
+      return;
+    }
 
     // URL requests stay in the existing Chat TXT composer but bypass AI.
     // The API receives the same personaId that opened this chat.
@@ -1429,6 +1505,7 @@ export default function ChatScreen() {
     }
 
 
+    sendInFlightRef.current = true;
     const userMsg: Message = { id: Date.now().toString(), role: 'user', content: text, timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
@@ -1676,10 +1753,11 @@ export default function ChatScreen() {
         Alert.alert('பிழை', errMsg || 'பதில் வரவில்லை. மீண்டும் முயல்க.');
       }
     } finally {
+      sendInFlightRef.current = false;
       setLoading(false);
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     }
-  }, [input, loading, messages, provider, persona, isOnline, localGemmaPort, moodMode, presanaBehaviour, normalBehaviour, dialectMode, userName, userBehaviour, reloadPersona, kiruthikaUserDetails, todayStory, storyRoleText, awaitingRoleAssign]);
+  }, [input, loading, messages, provider, persona, isOnline, localGemmaPort, moodMode, presanaBehaviour, normalBehaviour, dialectMode, userName, userBehaviour, reloadPersona, kiruthikaUserDetails, todayStory, storyRoleText, awaitingRoleAssign, historyLoaded, loadChatHistory, personaId]);
 
   const handleShowGalleryInChat = async (styleId: string) => {
     if (!persona) return;
@@ -2301,9 +2379,9 @@ export default function ChatScreen() {
               </TouchableOpacity>
             </View>
             <TouchableOpacity
-              style={[styles.sendBtn, (!input.trim() || loading) && styles.sendBtnDisabled]}
+              style={[styles.sendBtn, (!input.trim() || loading || (!!personaId && (!historyLoaded || historyLoadedPersonaIdRef.current !== personaId))) && styles.sendBtnDisabled]}
               onPress={handleSend}
-              disabled={!input.trim() || loading}
+              disabled={!input.trim() || loading || (!!personaId && (!historyLoaded || historyLoadedPersonaIdRef.current !== personaId))}
             >
               <Text style={styles.sendIcon}>➤</Text>
             </TouchableOpacity>

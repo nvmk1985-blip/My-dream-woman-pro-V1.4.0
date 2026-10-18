@@ -11,6 +11,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import { uploadToCloudinary, uploadUriToCloudinary, listCloudinaryImages, listCloudinaryVideos, listCloudinaryBackups, deleteFromCloudinary, trackCloudinaryUpload, CloudinaryBackup } from '../services/api';
 import { ALL_PERSONAS } from '../constants/personas';
+import { useColors } from '../hooks/useColors';
+import { createThemedStyles } from '../utils/themed-styles';
 
 const { width } = Dimensions.get('window');
 const THUMB = (width - 6) / 3;
@@ -89,6 +91,7 @@ const APP_ICON_KEY = 'my_girls_app_icons';
 const CLOUD_SECRETS_KEY = 'my_girls_cloud_secrets';
 
 export default function CloudStorageScreen() {
+  const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [images, setImages] = useState<CloudImage[]>([]);
@@ -460,8 +463,8 @@ export default function CloudStorageScreen() {
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.syncBtn} onPress={syncFromCloud} disabled={fetchingCloud}>
             {fetchingCloud
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={styles.syncBtnTxt}>🔄 Sync</Text>
+              ? <ActivityIndicator color={colors.textPrimary} size="small" />
+              : <Text style={[styles.syncBtnTxt, { color: colors.textOnGold }]}>🔄 Sync</Text>
             }
           </TouchableOpacity>
           <TouchableOpacity style={styles.secretBtn} onPress={() => setSecretsModal(true)}>
@@ -479,7 +482,7 @@ export default function CloudStorageScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => { setRefreshing(true); loadLocalImages(); }}
-            tintColor="#6C63FF"
+            tintColor={colors.goldPrimary}
           />
         }
       >
@@ -557,7 +560,7 @@ export default function CloudStorageScreen() {
               </Text>
               {cat.count > 0 && (
                 <View style={styles.catBadge}>
-                  <Text style={styles.catBadgeText}>{cat.count}</Text>
+                  <Text style={[styles.catBadgeText, { color: colors.textOnGold }]}>{cat.count}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -601,8 +604,8 @@ export default function CloudStorageScreen() {
                   disabled={uploadingVideo}
                 >
                   {uploadingVideo
-                    ? <ActivityIndicator color="#fff" size="small" />
-                    : <Text style={styles.videoUploadBtnTxt}>📤 Video Upload பண்ணுங்கள்</Text>
+                    ? <ActivityIndicator color={colors.textPrimary} size="small" />
+                    : <Text style={[styles.videoUploadBtnTxt, { color: colors.textOnCyan }]}>📤 Video Upload பண்ணுங்கள்</Text>
                   }
                 </TouchableOpacity>
 
@@ -613,7 +616,7 @@ export default function CloudStorageScreen() {
                   disabled={loadingVideos}
                 >
                   {loadingVideos
-                    ? <ActivityIndicator color="#6C63FF" size="small" />
+                    ? <ActivityIndicator color={colors.goldPrimary} size="small" />
                     : <Text style={styles.syncVideosBtnTxt}>🔄 Cloud Sync</Text>
                   }
                 </TouchableOpacity>
@@ -682,7 +685,7 @@ export default function CloudStorageScreen() {
                   disabled={loadingVideos}
                 >
                   {loadingVideos
-                    ? <ActivityIndicator color="#6C63FF" size="small" />
+                    ? <ActivityIndicator color={colors.goldPrimary} size="small" />
                     : <Text style={styles.syncVideosBtnTxt}>🔄 எல்லா Girls Videos Sync</Text>
                   }
                 </TouchableOpacity>
@@ -723,12 +726,12 @@ export default function CloudStorageScreen() {
             <View style={styles.appIconHeader}>
               <View><Text style={styles.appIconTitle}>🗜️ Project ZIP Files</Text><Text style={styles.appIconSub}>Cloudinary: {ZIP_FOLDER}/ (including sub-folders)</Text></View>
               <TouchableOpacity style={[styles.appIconUploadBtn, uploadingZip && { opacity: 0.6 }]} onPress={uploadZip} disabled={uploadingZip}>
-                {uploadingZip ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.appIconUploadTxt}>📤 Upload ZIP</Text>}
+                {uploadingZip ? <ActivityIndicator color={colors.textOnGold} size="small" /> : <Text style={[styles.appIconUploadTxt, { color: colors.textOnGold }]}>📤 Upload ZIP</Text>}
               </TouchableOpacity>
             </View>
             <View style={styles.appIconInfo}><Text style={styles.appIconInfoTxt}>📌 File Manager திறக்கும் → ZIP file select → Cloudinary raw folder-ல் save ஆகும்</Text></View>
             {zipFiles.length === 0 ? <View style={styles.appIconEmpty}><Text style={styles.appIconEmptyIcon}>🗜️</Text><Text style={styles.appIconEmptyTxt}>ZIP files இல்லை</Text><Text style={styles.appIconEmptyHint}>மேலே Upload ZIP அழுத்துங்கள்</Text></View> :
-              <View>{zipFiles.map(zip => <View key={zip.public_id} style={{ backgroundColor: '#16213e', borderRadius: 12, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center' }}><Text style={{ fontSize: 28, marginRight: 12 }}>🗜️</Text><View style={{ flex: 1 }}><Text style={{ color: '#fff', fontWeight: '700' }} numberOfLines={1}>{zip.fileName}</Text><Text style={{ color: '#888', fontSize: 11, marginTop: 4 }}>{zip.format || 'zip'} · {zip.backupDate ? new Date(zip.backupDate).toLocaleDateString('ta-IN') : ''}</Text></View><TouchableOpacity onPress={() => Linking.openURL(zip.url)} style={{ backgroundColor: '#6C63FF', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 }}><Text style={{ color: '#fff', fontWeight: '700' }}>Open</Text></TouchableOpacity></View>)}</View>}
+              <View>{zipFiles.map(zip => <View key={zip.public_id} style={{ backgroundColor: colors.card, borderRadius: 12, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center' }}><Text style={{ fontSize: 28, marginRight: 12 }}>🗜️</Text><View style={{ flex: 1 }}><Text style={{ color: colors.textPrimary, fontWeight: '700' }} numberOfLines={1}>{zip.fileName}</Text><Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 4 }}>{zip.format || 'zip'} · {zip.backupDate ? new Date(zip.backupDate).toLocaleDateString('ta-IN') : ''}</Text></View><TouchableOpacity onPress={() => Linking.openURL(zip.url)} style={{ backgroundColor: colors.goldPrimary, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 }}><Text style={{ color: colors.textOnGold, fontWeight: '700' }}>Open</Text></TouchableOpacity></View>)}</View>}
           </View>
         ) : activeCategory === 'app-icon' ? (
           <View style={styles.appIconSection}>
@@ -743,8 +746,8 @@ export default function CloudStorageScreen() {
                 disabled={uploadingIcon}
               >
                 {uploadingIcon
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={styles.appIconUploadTxt}>📤 Upload Icon</Text>
+                  ? <ActivityIndicator color={colors.textPrimary} size="small" />
+                  : <Text style={[styles.appIconUploadTxt, { color: colors.textOnGold }]}>📤 Upload Icon</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -787,7 +790,7 @@ export default function CloudStorageScreen() {
             )}
           </View>
         ) : loading ? (
-          <ActivityIndicator color="#6C63FF" size="large" style={{ marginTop: 60 }} />
+          <ActivityIndicator color={colors.goldPrimary} size="large" style={{ marginTop: 60 }} />
         ) : (
           <>
             {images.length === 0 && (
@@ -799,8 +802,8 @@ export default function CloudStorageScreen() {
                 </Text>
                 <TouchableOpacity style={styles.syncCardBtn} onPress={syncFromCloud} disabled={fetchingCloud}>
                   {fetchingCloud
-                    ? <ActivityIndicator color="#fff" size="small" />
-                    : <Text style={styles.syncCardBtnTxt}>🔄 Sync from Cloud</Text>
+                    ? <ActivityIndicator color={colors.textPrimary} size="small" />
+                    : <Text style={[styles.syncCardBtnTxt, { color: colors.textOnGold }]}>🔄 Sync from Cloud</Text>
                   }
                 </TouchableOpacity>
               </View>
@@ -900,7 +903,7 @@ export default function CloudStorageScreen() {
                 value={cloudName}
                 onChangeText={setCloudName}
                 placeholder="e.g. dazmrxsyc"
-                placeholderTextColor="#555"
+                placeholderTextColor={colors.inputPlaceholder}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -918,7 +921,7 @@ export default function CloudStorageScreen() {
                 value={cloudApiKey}
                 onChangeText={setCloudApiKey}
                 placeholder="123456789012345"
-                placeholderTextColor="#555"
+                placeholderTextColor={colors.inputPlaceholder}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="numeric"
@@ -937,7 +940,7 @@ export default function CloudStorageScreen() {
                 value={cloudApiSecret}
                 onChangeText={setCloudApiSecret}
                 placeholder="xxxxxxxxxxxxxxxxxxxxxxxx"
-                placeholderTextColor="#555"
+                placeholderTextColor={colors.inputPlaceholder}
                 autoCapitalize="none"
                 autoCorrect={false}
                 secureTextEntry
@@ -957,8 +960,8 @@ export default function CloudStorageScreen() {
               )}
               <TouchableOpacity style={styles.secSaveBtn} onPress={saveSecrets} disabled={savingSecrets}>
                 {savingSecrets
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={styles.secSaveTxt}>💾 Save Secrets</Text>
+                  ? <ActivityIndicator color={colors.textPrimary} size="small" />
+                  : <Text style={[styles.secSaveTxt, { color: colors.textOnCyan }]}>💾 Save Secrets</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -988,7 +991,7 @@ export default function CloudStorageScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles({
   safe: { flex: 1, backgroundColor: '#1a1a2e' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',

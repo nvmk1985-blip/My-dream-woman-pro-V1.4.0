@@ -3,22 +3,22 @@ import { useColorScheme } from "react-native";
 import colors from "@/constants/colors";
 
 /**
- * Returns the design tokens for the current color scheme.
+ * Returns the shared design tokens.
  *
- * The returned object contains all color tokens for the active palette
- * plus scheme-independent values like `radius`.
- *
- * Falls back to the light palette when no dark key is defined in
- * constants/colors.ts (the scaffold ships light-only by default).
- * When a sibling web artifact's dark tokens are synced into a `dark`
- * key, this hook will automatically switch palettes based on the
- * device's appearance setting.
+ * Both system schemes intentionally use the same fixed brand palette. The
+ * returned object also exposes spacing, typography, gradients, and effects
+ * for later screen-by-screen migration without creating another token source.
  */
 export function useColors() {
   const scheme = useColorScheme();
-  const palette =
-    scheme === "dark" && "dark" in colors
-      ? (colors as Record<string, typeof colors.light>).dark
-      : colors.light;
-  return { ...palette, radius: colors.radius };
+  const palette = scheme === "dark" ? colors.dark : colors.light;
+
+  return {
+    ...palette,
+    radius: colors.radius,
+    spacing: colors.spacing,
+    typography: colors.typography,
+    gradients: colors.gradients,
+    effects: colors.effects,
+  };
 }

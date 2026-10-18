@@ -4,8 +4,21 @@
 
 ## தற்போதைய நிலை
 - Step 1 read-only audit: **முடிந்தது** — [step-1-audit.md](step-1-audit.md).
+- Step 2 shared design-token foundation: **முடிந்தது** — [step-2-design-system.md](step-2-design-system.md).
+- Step 2 visual design board and icon concept exports: **முடிந்தது** — [design guide](../docs/design-system/README.md), [UI implementation guide](../docs/AGENTS.md), and [updated Step 2 handoff](step-2-design-system.md) (handoff update commit `adafeb66f752`). The icon exports remain design-only and are not wired into app assets.
+- Steps 2–6 branch: `feature/black-leather-royal-gold` (இன்னும் `main`-க்கு merge செய்யப்படவில்லை). Step 2 token code commit `3e69dd3855e1576e7a5bdbfab1f1bd53f458af41`; Step 2 handoff/docs commit `f94c6cf6f0dea6d96a3aabe63f253551445e5ed6`.
+- Step 3 Settings modal, `/settings`, `/keys` UI redesign: **code முடிந்தது** — [step-3-settings.md](step-3-settings.md); code commit `1b80712041b1be007147dfaedec83d045dd95f96`.
+- Step 3 app typecheck மற்றும் live UI preview: **சரிபார்க்க முடியவில்லை** — worktree-ல் `node_modules` இல்லை; Expo workflow `expo` executable இல்லாததால் தொடங்கவில்லை. Dependency/lockfile பிரச்சினைகளை மாற்றவில்லை.
+- Step 4a Chat message/send/history: **முடிந்தது** — [step-4a-chat-messages-history.md](step-4a-chat-messages-history.md); code commit `e7d25367a9dfe98e64cb7094f2dda06f85855e2f` (feature branch மட்டும்).
+- Step 4a TypeScript TSX syntax parse மற்றும் diff whitespace check: **வெற்றி**; முழு app typecheck/device runtime: **சரிபார்க்க முடியவில்லை** — இந்த workspace-ல் app checkout மற்றும் Expo dependencies இல்லை.
+- Step 4b Character list, character edit/save, URL மற்றும் navigation UI: **code முடிந்தது** — [step-4b-character-management.md](step-4b-character-management.md). Typecheck/live preview முடியவில்லை; காரணமும் verification வரம்பும் handoff-ல் பதிவு செய்யப்பட்டுள்ளது.
+- Step 5 Cloudinary, Gallery, Image-to-Script UI restyle: **code முடிந்தது** — [step-5-cloudinary-gallery-image-to-script.md](step-5-cloudinary-gallery-image-to-script.md); code commit `80be37c30bf8ecd4730e7334bc0d6fd95d187028`.
+- Step 5 TSX syntax, shared-color mapping/helper checks மற்றும் diff whitespace check: **வெற்றி**; full app typecheck மற்றும் live device preview: **சரிபார்க்க முடியவில்லை** — app dependencies/Expo types இந்த workspace-ல் இல்லை.
+- Step 6 Script-to-Image + Face Swap UI restyle: **code முடிந்தது** — [step-6-script-to-image-and-swap.md](step-6-script-to-image-and-swap.md); code commit `78642ac1df1c635945d16cf7aa1ba77c21937edc`.
+- Step 6 TSX syntax மற்றும் diff whitespace checks: **வெற்றி**; full app typecheck மற்றும் live preview: **சரிபார்க்க முடியவில்லை** — Expo dependencies/workflow கிடைக்கவில்லை.
+- Step 7 regression validation: **நிலுவை** — Step 1 diff/path மற்றும் chat behavior read-only checks செய்யப்பட்டன; மீதமுள்ள ஆபத்துகள் [Remaining Risks](remaining-risks.md)-ல் உள்ளன.
 - ஆய்வு செய்த app source commit: `7a1fadc0a928b6975edecd1e8d646c67382ce0fb`.
-- இந்த handoff commit-ல் `future/` ஆவணங்கள் மட்டும் சேர்க்கப்பட்டன; app source/assets மாற்றப்படவில்லை.
+- Step 1 handoff commit-ல் `future/` ஆவணங்கள் மட்டும் சேர்க்கப்பட்டன; அப்போது app source/assets மாற்றப்படவில்லை.
 - Step 1-க்கு GitHub Action trigger செய்யப்படவில்லை.
 
 ## கட்டாய guardrails

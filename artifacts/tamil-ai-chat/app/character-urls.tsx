@@ -25,8 +25,14 @@ import {
   updateCharacterUrl,
 } from "../services/api";
 import { openExternalHttpUrl } from "../utils/external-url";
+import { Ionicons } from "@expo/vector-icons";
+import { useColors } from "../hooks/useColors";
+import themeTokens from "../constants/colors";
+
+const C = themeTokens.dark;
 
 export default function CharacterUrlsScreen() {
+  const colors = useColors();
   const router = useRouter();
   const characterId = ParamsStore.getUrlPersonaId() ?? "";
   const [persona, setPersona] = useState<Persona | null>(null);
@@ -188,14 +194,17 @@ export default function CharacterUrlsScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>‹</Text>
+          <Ionicons name="chevron-back" size={22} color={colors.goldBright} />
         </TouchableOpacity>
         <View style={styles.headerCopy}>
           <Text style={styles.title}>Saved URLs</Text>
           <Text style={styles.subtitle}>{persona?.name ?? "Character"}</Text>
         </View>
         <TouchableOpacity onPress={() => openEditor()} style={styles.addButton}>
-          <Text style={styles.addButtonText}>＋ Add</Text>
+          <View style={styles.addButtonContent}>
+            <Ionicons name="add" size={18} color={colors.textOnGold} />
+            <Text style={styles.addButtonText}>Add</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -205,7 +214,7 @@ export default function CharacterUrlsScreen() {
       >
         {loading ? (
           <View style={styles.center}>
-            <ActivityIndicator color="#075E54" size="large" />
+            <ActivityIndicator color={colors.cyanPrimary} size="large" />
           </View>
         ) : (
           <ScrollView
@@ -213,7 +222,10 @@ export default function CharacterUrlsScreen() {
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.notice}>
-              <Text style={styles.noticeTitle}>🔗 {persona?.name ?? "இந்த character"} URLs</Text>
+              <View style={styles.noticeTitleRow}>
+                <Ionicons name="link-outline" size={18} color={colors.cyanPrimary} />
+                <Text style={styles.noticeTitle}>{persona?.name ?? "இந்த character"} URLs</Text>
+              </View>
               <Text style={styles.noticeText}>
                 Active URLs மட்டும் Chat TXT-ல் வரிசையாக வரும். Disabled URL skip ஆகும்.
               </Text>
@@ -221,7 +233,7 @@ export default function CharacterUrlsScreen() {
 
             {urls.length === 0 ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyIcon}>🔗</Text>
+                <Ionicons name="link-outline" size={30} color={colors.goldBright} style={styles.emptyIcon} />
                 <Text style={styles.emptyTitle}>URL இன்னும் save செய்யவில்லை</Text>
                 <Text style={styles.emptyText}>இந்த character-க்கு மட்டும் பயன்படுத்தப்படும் URL-ஐ add பண்ணுங்க.</Text>
                 <TouchableOpacity style={styles.emptyButton} onPress={() => openEditor()}>
@@ -277,7 +289,12 @@ export default function CharacterUrlsScreen() {
                   </View>
                 ))}
                 <TouchableOpacity style={styles.saveOrderButton} onPress={saveOrder} disabled={saving}>
-                  {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveOrderText}>💾 Save URL Order</Text>}
+                  {saving ? <ActivityIndicator color={colors.textOnGold} /> : (
+                    <View style={styles.addButtonContent}>
+                      <Ionicons name="save-outline" size={17} color={colors.textOnGold} />
+                      <Text style={styles.saveOrderText}>Save URL Order</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               </>
             )}
@@ -293,7 +310,7 @@ export default function CharacterUrlsScreen() {
               value={draftUrl}
               onChangeText={setDraftUrl}
               placeholder="https://example.com/..."
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.inputPlaceholder}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="url"
@@ -305,7 +322,7 @@ export default function CharacterUrlsScreen() {
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.confirmButton} onPress={saveUrl} disabled={saving}>
-                {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.confirmText}>Save</Text>}
+                {saving ? <ActivityIndicator color={colors.textOnGold} /> : <Text style={styles.confirmText}>Save</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -316,59 +333,63 @@ export default function CharacterUrlsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#f3f7f6" },
+  safe: { flex: 1, backgroundColor: C.bgPrimary },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#075E54",
+    backgroundColor: C.bgSecondary,
     paddingHorizontal: 12,
     paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: C.glassGoldBorder,
   },
-  backButton: { paddingHorizontal: 8, paddingVertical: 2 },
-  backText: { color: "#fff", fontSize: 34, lineHeight: 34 },
+  backButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  backText: { color: C.textPrimary, fontSize: 34, lineHeight: 34 },
   headerCopy: { flex: 1, marginLeft: 6 },
-  title: { color: "#fff", fontSize: 20, fontWeight: "800" },
-  subtitle: { color: "#d7f4ee", fontSize: 13, marginTop: 2 },
-  addButton: { backgroundColor: "#25D366", borderRadius: 18, paddingHorizontal: 13, paddingVertical: 8 },
-  addButtonText: { color: "#073b35", fontSize: 13, fontWeight: "800" },
+  title: { color: C.goldBright, fontSize: 20, fontWeight: "800" },
+  subtitle: { color: C.textTertiary, fontSize: 13, marginTop: 2 },
+  addButton: { backgroundColor: C.buttonGold, borderRadius: 13, paddingHorizontal: 13, paddingVertical: 9, minHeight: 44, justifyContent: "center" },
+  addButtonContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 },
+  addButtonText: { color: C.textOnGold, fontSize: 13, fontWeight: "800" },
   body: { flex: 1 },
-  content: { padding: 16, paddingBottom: 36 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  notice: { backgroundColor: "#e6f4f1", borderRadius: 14, padding: 14, marginBottom: 14 },
-  noticeTitle: { color: "#075E54", fontSize: 15, fontWeight: "800" },
-  noticeText: { color: "#38655f", fontSize: 13, lineHeight: 19, marginTop: 5 },
-  empty: { backgroundColor: "#fff", borderRadius: 18, padding: 28, alignItems: "center", marginTop: 12 },
-  emptyIcon: { fontSize: 34, marginBottom: 10 },
-  emptyTitle: { color: "#222", fontSize: 16, fontWeight: "800" },
-  emptyText: { color: "#777", fontSize: 13, textAlign: "center", lineHeight: 19, marginTop: 6 },
-  emptyButton: { backgroundColor: "#075E54", borderRadius: 12, paddingHorizontal: 18, paddingVertical: 11, marginTop: 16 },
-  emptyButtonText: { color: "#fff", fontWeight: "800" },
-  urlCard: { backgroundColor: "#fff", borderRadius: 14, padding: 12, marginBottom: 10, flexDirection: "row", alignItems: "center", elevation: 1 },
+  content: { padding: 16, paddingBottom: 40 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: C.bgPrimary },
+  notice: { backgroundColor: C.card, borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: C.glassCyanBorder },
+  noticeTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  noticeTitle: { color: C.textCyan, fontSize: 15, fontWeight: "800" },
+  noticeText: { color: C.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 7 },
+  empty: { backgroundColor: C.card, borderWidth: 1, borderColor: C.borderSubtle, borderRadius: 18, padding: 28, alignItems: "center", marginTop: 12 },
+  emptyIcon: { marginBottom: 10 },
+  emptyTitle: { color: C.textPrimary, fontSize: 16, fontWeight: "800", textAlign: "center" },
+  emptyText: { color: C.textTertiary, fontSize: 13, textAlign: "center", lineHeight: 19, marginTop: 6 },
+  emptyButton: { backgroundColor: C.buttonGold, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 12, minHeight: 44, justifyContent: "center", marginTop: 16 },
+  emptyButtonText: { color: C.textOnGold, fontWeight: "800" },
+  urlCard: { backgroundColor: C.card, borderWidth: 1, borderColor: C.borderSubtle, borderRadius: 16, padding: 12, marginBottom: 10, flexDirection: "row", alignItems: "center" },
   urlCardDisabled: { opacity: 0.65 },
   orderColumn: { width: 34, alignItems: "center" },
-  orderText: { color: "#075E54", fontSize: 18, fontWeight: "800" },
-  arrowButton: { padding: 2 },
-  arrowText: { color: "#075E54", fontSize: 12 },
-  muted: { color: "#ccc" },
+  orderText: { color: C.goldBright, fontSize: 18, fontWeight: "800" },
+  arrowButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  arrowText: { color: C.cyanPrimary, fontSize: 12 },
+  muted: { color: C.textMuted },
   urlCopy: { flex: 1, paddingHorizontal: 8 },
-  urlText: { color: "#222", fontSize: 13, lineHeight: 18 },
-  disabledText: { color: "#999" },
+  urlText: { color: C.textPrimary, fontSize: 13, lineHeight: 18 },
+  disabledText: { color: C.textMuted },
   statusText: { fontSize: 11, marginTop: 5, fontWeight: "700" },
-  activeText: { color: "#16804c" },
+  activeText: { color: C.success },
   actions: { alignItems: "flex-end", gap: 5 },
-  actionButton: { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 7, backgroundColor: "#e8f5e9" },
-  actionText: { color: "#075E54", fontSize: 11, fontWeight: "700" },
-  deleteButton: { backgroundColor: "#ffebee" },
-  deleteText: { color: "#c62828", fontSize: 11, fontWeight: "700" },
-  saveOrderButton: { backgroundColor: "#075E54", borderRadius: 13, paddingVertical: 14, alignItems: "center", marginTop: 6 },
-  saveOrderText: { color: "#fff", fontWeight: "800", fontSize: 15 },
-  editorOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 },
-  editor: { backgroundColor: "#fff", borderRadius: 18, padding: 20 },
-  editorTitle: { color: "#075E54", fontSize: 19, fontWeight: "800", marginBottom: 14 },
-  input: { borderWidth: 1, borderColor: "#b7d8d2", borderRadius: 11, paddingHorizontal: 12, paddingVertical: 11, color: "#222", fontSize: 15 },
+  actionButton: { minHeight: 44, minWidth: 76, paddingHorizontal: 9, paddingVertical: 7, borderRadius: 9, backgroundColor: C.cardSecondary, borderWidth: 1, borderColor: C.border },
+  actionText: { color: C.textCyan, fontSize: 11, fontWeight: "700" },
+  deleteButton: { backgroundColor: C.error, borderColor: C.error },
+  deleteText: { color: C.textPrimary, fontSize: 11, fontWeight: "700" },
+  saveOrderButton: { backgroundColor: C.buttonGold, borderRadius: 13, minHeight: 48, paddingVertical: 14, alignItems: "center", justifyContent: "center", marginTop: 6 },
+  saveOrderText: { color: C.textOnGold, fontWeight: "800", fontSize: 15 },
+  editorOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: C.overlay, justifyContent: "center", padding: 20 },
+  editor: { backgroundColor: C.leatherBlack, borderWidth: 1, borderColor: C.glassGoldBorder, borderRadius: 18, padding: 20 },
+  editorTitle: { color: C.goldBright, fontSize: 19, fontWeight: "800", marginBottom: 14 },
+  input: { borderWidth: 1, borderColor: C.inputBorder, backgroundColor: C.inputBackground, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11, color: C.inputText, fontSize: 15, minHeight: 48 },
   editorActions: { flexDirection: "row", gap: 10, marginTop: 16 },
-  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#ccc", borderRadius: 11, paddingVertical: 12, alignItems: "center" },
-  cancelText: { color: "#555", fontWeight: "700" },
-  confirmButton: { flex: 1, backgroundColor: "#075E54", borderRadius: 11, paddingVertical: 12, alignItems: "center" },
-  confirmText: { color: "#fff", fontWeight: "800" },
+  cancelButton: { flex: 1, minHeight: 46, borderWidth: 1, borderColor: C.border, backgroundColor: C.buttonSecondary, borderRadius: 11, paddingVertical: 12, alignItems: "center", justifyContent: "center" },
+  cancelText: { color: C.textSecondary, fontWeight: "700" },
+  confirmButton: { flex: 1, minHeight: 46, backgroundColor: C.buttonGold, borderRadius: 11, paddingVertical: 12, alignItems: "center", justifyContent: "center" },
+  confirmText: { color: C.textOnGold, fontWeight: "800" },
 });

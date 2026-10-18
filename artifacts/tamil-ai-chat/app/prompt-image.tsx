@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   Image, ActivityIndicator, ScrollView, Alert, Dimensions,
@@ -15,6 +15,8 @@ import {
   HF_NSFW_MODELS,
 } from '../services/api';
 import { requestPhotoVideoPermissionsAsync } from '../services/media-permissions';
+import { Ionicons } from '@expo/vector-icons';
+import { useColors } from '../hooks/useColors';
 
 const { width } = Dimensions.get('window');
 
@@ -47,6 +49,11 @@ async function analyzeImageWithGemini(b64: string, mime: string): Promise<string
 
 // ── Progress Bar ────────────────────────────────────────────────────────────
 function ProgressBar({ progress, msg }: { progress: number; msg: string }) {
+  const colors = useColors();
+  const pb = useMemo(() => createProgressStyles(colors), [
+    colors.bgTertiary, colors.card, colors.borderCyan, colors.textSecondary,
+    colors.goldBright, colors.textCyan, colors.textPrimary, colors.cyanPrimary,
+  ]);
   const p = Math.min(100, Math.max(0, progress));
   return (
     <View style={pb.wrap}>
@@ -60,13 +67,13 @@ function ProgressBar({ progress, msg }: { progress: number; msg: string }) {
     </View>
   );
 }
-const pb = StyleSheet.create({
-  wrap: { backgroundColor: '#12103a', borderRadius: 12, padding: 12, marginVertical: 8, borderWidth: 1, borderColor: '#E91E8C33' },
+const createProgressStyles = (colors: ReturnType<typeof useColors>) => StyleSheet.create({
+  wrap: { backgroundColor: colors.card, borderRadius: 12, padding: 12, marginVertical: 8, borderWidth: 1, borderColor: colors.borderCyan },
   row: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 8 },
-  msg: { color: '#c4b5fd', fontSize: 12, flex: 1, lineHeight: 18 },
-  pct: { color: '#fff', fontSize: 20, fontWeight: '900', minWidth: 46, textAlign: 'right' },
-  track: { height: 8, borderRadius: 4, backgroundColor: '#1e1b4b', overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: 4, backgroundColor: '#E91E8C' },
+  msg: { color: colors.textSecondary, fontSize: 12, flex: 1, lineHeight: 18 },
+  pct: { color: colors.goldBright, fontSize: 20, fontWeight: '900', minWidth: 46, textAlign: 'right' },
+  track: { height: 8, borderRadius: 4, backgroundColor: colors.bgTertiary, overflow: 'hidden' },
+  fill: { height: '100%', borderRadius: 4, backgroundColor: colors.cyanPrimary },
 });
 
 // ── Main screen ──────────────────────────────────────────────────────────────
@@ -75,6 +82,17 @@ type Mode = 'text' | 'image';
 export default function PromptImageScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useColors();
+  const s = useMemo(() => createStyles(colors), [
+    colors.bgPrimary, colors.bgSecondary, colors.bgTertiary, colors.bgDeep,
+    colors.card, colors.cardSecondary, colors.border, colors.borderSubtle,
+    colors.borderCyan, colors.borderGold, colors.cyanBorder, colors.goldPrimary, colors.goldBright, colors.cyanPrimary,
+    colors.cyanSoft, colors.success, colors.warning, colors.error, colors.overlay,
+    colors.buttonGold, colors.buttonCyan, colors.buttonSecondary, colors.buttonDisabled,
+    colors.textPrimary, colors.textSecondary, colors.textTertiary, colors.textMuted,
+    colors.textDisabled, colors.textOnGold, colors.textOnCyan, colors.textCyan,
+    colors.inputBackground, colors.inputBorder, colors.inputText, colors.inputPlaceholder,
+  ]);
 
   // Mode: text prompt OR image upload
   const [mode, setMode] = useState<Mode>('text');
@@ -227,9 +245,9 @@ export default function PromptImageScreen() {
         {/* Header */}
         <View style={[s.header, { paddingTop: insets.top + 12 }]}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <Text style={s.backTxt}>← Back</Text>
+            <View style={s.actionLabelRow}><Ionicons name="arrow-back-outline" size={18} color={colors.textCyan} /><Text style={s.backTxt}>Back</Text></View>
           </TouchableOpacity>
-          <Text style={s.headerTitle}>🎨 Image Studio</Text>
+          <View style={s.headerTitleRow}><Ionicons name="sparkles-outline" size={19} color={colors.goldBright} /><Text style={s.headerTitle}>Image Studio</Text></View>
           <View style={{ width: 60 }} />
         </View>
 
@@ -241,21 +259,22 @@ export default function PromptImageScreen() {
               style={[s.modeBtn, mode === 'text' && s.modeBtnActive]}
               onPress={() => { setMode('text'); setImageUri(null); setError(null); }}
             >
-              <Text style={[s.modeTxt, mode === 'text' && s.modeTxtActive]}>✏️ Text Prompt</Text>
+              <View style={s.modeButtonRow}><Ionicons name="create-outline" size={17} color={mode === 'text' ? colors.textOnCyan : colors.textTertiary} /><Text style={[s.modeTxt, mode === 'text' && s.modeTxtActive]}>Text Prompt</Text></View>
             </TouchableOpacity>
             <TouchableOpacity
               style={[s.modeBtn, mode === 'image' && s.modeBtnActive]}
               onPress={() => { setMode('image'); setImageUri(null); setError(null); }}
             >
-              <Text style={[s.modeTxt, mode === 'image' && s.modeTxtActive]}>📸 Image Upload</Text>
+              <View style={s.modeButtonRow}><Ionicons name="image-outline" size={17} color={mode === 'image' ? colors.textOnCyan : colors.textTertiary} /><Text style={[s.modeTxt, mode === 'image' && s.modeTxtActive]}>Image Upload</Text></View>
             </TouchableOpacity>
           </View>
 
           {/* Model badge */}
           <View style={s.modelBadge}>
-            <Text style={s.modelBadgeTxt}>🎨 Render AI Image Studio</Text>
-            <View style={[s.dot, { backgroundColor: '#22c55e' }]} />
-            <Text style={[s.tokenStatus, { color: '#22c55e' }]}>Connected ✅</Text>
+            <Ionicons name="sparkles-outline" size={17} color={colors.goldBright} />
+            <Text style={s.modelBadgeTxt}>Render AI Image Studio</Text>
+            <View style={[s.dot, { backgroundColor: colors.success }]} />
+            <Text style={[s.tokenStatus, { color: colors.success }]}>Connected</Text>
           </View>
 
           {/* ── IMAGE UPLOAD MODE ── */}
@@ -267,12 +286,12 @@ export default function PromptImageScreen() {
                   <View>
                     <Image source={{ uri: uploadedUri }} style={s.uploadedImg} resizeMode="cover" />
                     <View style={s.changeOverlay}>
-                      <Text style={s.changeTxt}>📷 Change Photo</Text>
+                      <View style={s.actionLabelRow}><Ionicons name="camera-outline" size={15} color={colors.textPrimary} /><Text style={s.changeTxt}>Change Photo</Text></View>
                     </View>
                   </View>
                 ) : (
                   <View style={s.uploadPlaceholder}>
-                    <Text style={s.uploadIcon}>📸</Text>
+                    <Ionicons name="image-outline" size={48} color={colors.cyanPrimary} />
                     <Text style={s.uploadHint}>Photo Upload பண்ணுங்க</Text>
                     <Text style={s.uploadSub}>Gallery-ல் இருந்து எந்த photo-வும் OK</Text>
                   </View>
@@ -287,11 +306,11 @@ export default function PromptImageScreen() {
                 >
                   {analyzing ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <ActivityIndicator color="#fff" size="small" />
+                      <ActivityIndicator color={colors.textOnCyan} size="small" />
                       <Text style={s.analyzeBtnTxt}>Gemini AI analyzing...</Text>
                     </View>
                   ) : (
-                    <Text style={s.analyzeBtnTxt}>🔍 Analyze & Get Prompt</Text>
+                    <View style={s.actionLabelRow}><Ionicons name="scan-outline" size={18} color={colors.textOnCyan} /><Text style={s.analyzeBtnTxt}>Analyze & Get Prompt</Text></View>
                   )}
                 </TouchableOpacity>
               )}
@@ -299,9 +318,9 @@ export default function PromptImageScreen() {
               {analyzedPrompt && (
                 <View style={s.promptResult}>
                   <View style={s.promptResultHeader}>
-                    <Text style={s.promptResultTitle}>✅ AI Generated Prompt</Text>
+                    <View style={s.actionLabelRow}><Ionicons name="checkmark-circle-outline" size={16} color={colors.success} /><Text style={s.promptResultTitle}>AI Generated Prompt</Text></View>
                     <TouchableOpacity onPress={pickImage}>
-                      <Text style={s.reAnalyzeTxt}>🔄 New Photo</Text>
+                      <View style={s.actionLabelRow}><Ionicons name="refresh-outline" size={15} color={colors.textCyan} /><Text style={s.reAnalyzeTxt}>New Photo</Text></View>
                     </TouchableOpacity>
                   </View>
                   <Text style={s.promptResultText}>{analyzedPrompt}</Text>
@@ -312,7 +331,7 @@ export default function PromptImageScreen() {
                       setPrompt(analyzedPrompt);
                     }}
                   >
-                    <Text style={s.editPromptTxt}>✏️ Edit Prompt</Text>
+                    <View style={s.actionLabelRow}><Ionicons name="create-outline" size={15} color={colors.textCyan} /><Text style={s.editPromptTxt}>Edit Prompt</Text></View>
                   </TouchableOpacity>
                 </View>
               )}
@@ -347,7 +366,7 @@ export default function PromptImageScreen() {
                 value={prompt}
                 onChangeText={setPrompt}
                 placeholder="Example: beautiful Tamil girl, saree, smiling, garden background..."
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.inputPlaceholder}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -366,7 +385,7 @@ export default function PromptImageScreen() {
                 <Text style={[s.presetChipTxt, selectedModel === m.id && s.presetChipTxtActive]}>
                   {m.label}
                 </Text>
-                <Text style={{ fontSize: 9, color: selectedModel === m.id ? '#fff' : '#666', marginTop: 1 }}>
+                  <Text style={{ fontSize: 9, color: selectedModel === m.id ? colors.textPrimary : colors.textMuted, marginTop: 1 }}>
                   {m.tag}
                 </Text>
               </TouchableOpacity>
@@ -380,7 +399,7 @@ export default function PromptImageScreen() {
             value={negPrompt}
             onChangeText={setNegPrompt}
             placeholder="blurry, low quality, deformed..."
-            placeholderTextColor="#666"
+            placeholderTextColor={colors.inputPlaceholder}
             multiline
             textAlignVertical="top"
           />
@@ -399,13 +418,11 @@ export default function PromptImageScreen() {
           >
             {loading ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={colors.textOnGold} />
                 <Text style={s.genBtnTxt}>Generating... ({Math.round(progress)}%)</Text>
               </View>
             ) : (
-              <Text style={s.genBtnTxt}>
-                {mode === 'image' && analyzedPrompt ? '🎨 இந்த Prompt-ல் Image Generate பண்ணு' : '🎨 Image Generate பண்ணு'}
-              </Text>
+              <View style={s.actionLabelRow}><Ionicons name="sparkles-outline" size={19} color={colors.textOnGold} /><Text style={s.genBtnTxt}>{mode === 'image' && analyzedPrompt ? 'இந்த Prompt-ல் Image Generate பண்ணு' : 'Image Generate பண்ணு'}</Text></View>
             )}
           </TouchableOpacity>
 
@@ -414,25 +431,25 @@ export default function PromptImageScreen() {
           {/* Error */}
           {error && (
             <View style={s.errorBox}>
-              <Text style={s.errorTxt}>❌ {error}</Text>
+              <View style={s.errorRow}><Ionicons name="alert-circle-outline" size={18} color={colors.error} /><Text style={s.errorTxt}>{error}</Text></View>
             </View>
           )}
 
           {/* Generated image */}
           {imageUri && (
             <View style={s.resultBox}>
-              <Text style={s.resultLabel}>✅ Generated Image</Text>
+              <View style={s.actionLabelRow}><Ionicons name="checkmark-circle-outline" size={17} color={colors.success} /><Text style={s.resultLabel}>Generated Image</Text></View>
               <Image source={{ uri: imageUri }} style={s.resultImg} resizeMode="contain" />
               <View style={s.resultBtns}>
                 <TouchableOpacity style={s.regenBtn} onPress={handleGenerate}>
-                  <Text style={s.regenBtnTxt}>🔄 மீண்டும் Generate</Text>
+                  <View style={s.actionLabelRow}><Ionicons name="refresh-outline" size={16} color={colors.textCyan} /><Text style={s.regenBtnTxt}>மீண்டும் Generate</Text></View>
                 </TouchableOpacity>
                 {mode === 'image' && (
                   <TouchableOpacity
                     style={s.newPhotoBtn}
                     onPress={() => { setUploadedUri(null); setUploadedB64(null); setAnalyzedPrompt(null); setImageUri(null); }}
                   >
-                    <Text style={s.newPhotoBtnTxt}>📸 New Photo</Text>
+                    <View style={s.actionLabelRow}><Ionicons name="image-outline" size={16} color={colors.textCyan} /><Text style={s.newPhotoBtnTxt}>New Photo</Text></View>
                   </TouchableOpacity>
                 )}
               </View>
@@ -445,108 +462,112 @@ export default function PromptImageScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0a0a0a' },
+const createStyles = (colors: ReturnType<typeof useColors>) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bgPrimary },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#111', paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#222',
+    backgroundColor: colors.bgSecondary, paddingHorizontal: 16, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: colors.borderSubtle,
   },
   backBtn: { width: 60 },
-  backTxt: { color: '#E91E8C', fontSize: 14, fontWeight: '600' },
-  headerTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  backTxt: { color: colors.textCyan, fontSize: 14, fontWeight: '600' },
+  headerTitle: { color: colors.goldBright, fontSize: 16, fontWeight: '700' },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  actionLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  errorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   scroll: { padding: 16, paddingBottom: 40 },
   modeToggle: {
-    flexDirection: 'row', backgroundColor: '#1a1a1a', borderRadius: 12,
-    padding: 4, marginBottom: 14, borderWidth: 1, borderColor: '#333',
+    flexDirection: 'row', backgroundColor: colors.bgTertiary, borderRadius: 12,
+    padding: 4, marginBottom: 14, borderWidth: 1, borderColor: colors.border,
   },
   modeBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
-  modeBtnActive: { backgroundColor: '#E91E8C' },
-  modeTxt: { color: '#888', fontSize: 13, fontWeight: '700' },
-  modeTxtActive: { color: '#fff' },
+  modeBtnActive: { backgroundColor: colors.buttonCyan },
+  modeButtonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  modeTxt: { color: colors.textTertiary, fontSize: 13, fontWeight: '700' },
+  modeTxtActive: { color: colors.textOnCyan },
   modelBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#1a1a2e', borderRadius: 10, padding: 10, marginBottom: 16,
-    borderWidth: 1, borderColor: '#E91E8C33',
+    backgroundColor: colors.card, borderRadius: 10, padding: 10, marginBottom: 16,
+    borderWidth: 1, borderColor: colors.borderGold,
   },
-  modelBadgeTxt: { color: '#ccc', fontSize: 12, flex: 1 },
+  modelBadgeTxt: { color: colors.textSecondary, fontSize: 12, flex: 1 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   tokenStatus: { fontSize: 12, fontWeight: '600' },
-  sectionLabel: { color: '#888', fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 8, marginTop: 4 },
-  step2Label: { color: '#E91E8C', fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 8, marginTop: 16 },
+  sectionLabel: { color: colors.textTertiary, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 8, marginTop: 4 },
+  step2Label: { color: colors.goldBright, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 8, marginTop: 16 },
   presetsRow: { marginBottom: 16 },
   presetChip: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: '#1e1e1e', marginRight: 8, borderWidth: 1, borderColor: '#333',
+    backgroundColor: colors.card, marginRight: 8, borderWidth: 1, borderColor: colors.border,
   },
-  presetChipActive: { backgroundColor: '#E91E8C', borderColor: '#E91E8C' },
-  presetChipTxt: { color: '#aaa', fontSize: 13, fontWeight: '600' },
-  presetChipTxtActive: { color: '#fff' },
+  presetChipActive: { backgroundColor: colors.cyanSoft, borderColor: colors.cyanBorder },
+  presetChipTxt: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+  presetChipTxtActive: { color: colors.textCyan },
   promptInput: {
-    backgroundColor: '#1a1a1a', borderRadius: 12, borderWidth: 1, borderColor: '#333',
-    color: '#fff', fontSize: 14, padding: 12, height: 100, marginBottom: 16,
+    backgroundColor: colors.inputBackground, borderRadius: 12, borderWidth: 1, borderColor: colors.inputBorder,
+    color: colors.inputText, fontSize: 14, padding: 12, height: 100, marginBottom: 16,
   },
   uploadBox: {
     height: 200, borderRadius: 14, overflow: 'hidden', marginBottom: 12,
-    backgroundColor: '#1a1a1a', borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#444',
+    backgroundColor: colors.card, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.cyanBorder,
   },
   uploadedImg: { width: '100%', height: '100%' },
   changeOverlay: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)', paddingVertical: 8, alignItems: 'center',
+    backgroundColor: colors.overlay, paddingVertical: 8, alignItems: 'center',
   },
-  changeTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  changeTxt: { color: colors.textPrimary, fontSize: 13, fontWeight: '700' },
   uploadPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
   uploadIcon: { fontSize: 48 },
-  uploadHint: { color: '#999', fontSize: 15, fontWeight: '700' },
-  uploadSub: { color: '#555', fontSize: 12 },
+  uploadHint: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
+  uploadSub: { color: colors.textTertiary, fontSize: 12 },
   analyzeBtn: {
-    backgroundColor: '#7c3aed', borderRadius: 12, paddingVertical: 14,
+    backgroundColor: colors.buttonCyan, borderRadius: 12, paddingVertical: 14,
     alignItems: 'center', marginBottom: 12,
   },
-  analyzeBtnOff: { backgroundColor: '#3a1f7a', opacity: 0.7 },
-  analyzeBtnTxt: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  analyzeBtnOff: { backgroundColor: colors.buttonDisabled, opacity: 0.7 },
+  analyzeBtnTxt: { color: colors.textOnCyan, fontSize: 15, fontWeight: '700' },
   promptResult: {
-    backgroundColor: '#12103a', borderRadius: 12, padding: 14,
-    marginBottom: 12, borderWidth: 1, borderColor: '#7c3aed55',
+    backgroundColor: colors.card, borderRadius: 12, padding: 14,
+    marginBottom: 12, borderWidth: 1, borderColor: colors.borderCyan,
   },
   promptResultHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  promptResultTitle: { color: '#a78bfa', fontSize: 13, fontWeight: '800' },
-  reAnalyzeTxt: { color: '#E91E8C', fontSize: 12, fontWeight: '600' },
-  promptResultText: { color: '#ddd', fontSize: 12, lineHeight: 20 },
+  promptResultTitle: { color: colors.textPrimary, fontSize: 13, fontWeight: '800' },
+  reAnalyzeTxt: { color: colors.textCyan, fontSize: 12, fontWeight: '600' },
+  promptResultText: { color: colors.textSecondary, fontSize: 12, lineHeight: 20 },
   editPromptBtn: {
-    marginTop: 10, backgroundColor: '#1e1e1e', borderRadius: 8,
-    paddingVertical: 8, alignItems: 'center', borderWidth: 1, borderColor: '#555',
+    marginTop: 10, backgroundColor: colors.cardSecondary, borderRadius: 8,
+    paddingVertical: 8, alignItems: 'center', borderWidth: 1, borderColor: colors.border,
   },
-  editPromptTxt: { color: '#aaa', fontSize: 12, fontWeight: '600' },
+  editPromptTxt: { color: colors.textCyan, fontSize: 12, fontWeight: '600' },
   genBtn: {
-    backgroundColor: '#E91E8C', borderRadius: 14, paddingVertical: 16,
+    backgroundColor: colors.buttonGold, borderRadius: 14, paddingVertical: 16,
     alignItems: 'center', marginVertical: 8,
   },
-  genBtnDisabled: { backgroundColor: '#7a0f47', opacity: 0.7 },
-  genBtnTxt: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  genBtnDisabled: { backgroundColor: colors.buttonDisabled, opacity: 0.7 },
+  genBtnTxt: { color: colors.textOnGold, fontSize: 16, fontWeight: '700' },
   tokenWarning: {
-    backgroundColor: '#2a1a00', borderRadius: 10, padding: 12,
-    borderWidth: 1, borderColor: '#f59e0b44', marginTop: 8,
+    backgroundColor: colors.bgTertiary, borderRadius: 10, padding: 12,
+    borderWidth: 1, borderColor: colors.warning, marginTop: 8,
   },
-  tokenWarningTxt: { color: '#f59e0b', fontSize: 13, textAlign: 'center' },
+  tokenWarningTxt: { color: colors.warning, fontSize: 13, textAlign: 'center' },
   errorBox: {
-    backgroundColor: '#2a0a0a', borderRadius: 10, padding: 12,
-    borderWidth: 1, borderColor: '#ef444444', marginTop: 12,
+    backgroundColor: colors.bgTertiary, borderRadius: 10, padding: 12,
+    borderWidth: 1, borderColor: colors.error, marginTop: 12,
   },
-  errorTxt: { color: '#ef4444', fontSize: 13 },
-  resultBox: { marginTop: 20 },
-  resultLabel: { color: '#22c55e', fontSize: 14, fontWeight: '700', marginBottom: 10 },
-  resultImg: { width: width - 32, height: width - 32, borderRadius: 14, backgroundColor: '#111' },
+  errorTxt: { color: colors.error, fontSize: 13, flex: 1 },
+  resultBox: { marginTop: 20, backgroundColor: colors.card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.borderGold },
+  resultLabel: { color: colors.success, fontSize: 14, fontWeight: '700', marginBottom: 10 },
+  resultImg: { width: width - 60, height: width - 60, alignSelf: 'center', borderRadius: 14, backgroundColor: colors.bgDeep },
   resultBtns: { flexDirection: 'row', gap: 10, marginTop: 12 },
   regenBtn: {
-    flex: 1, backgroundColor: '#1e1e1e', borderRadius: 12,
-    paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: '#333',
+    flex: 1, backgroundColor: colors.cardSecondary, borderRadius: 12,
+    paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border,
   },
-  regenBtnTxt: { color: '#E91E8C', fontSize: 14, fontWeight: '600' },
+  regenBtnTxt: { color: colors.textCyan, fontSize: 14, fontWeight: '600' },
   newPhotoBtn: {
-    flex: 1, backgroundColor: '#1a1232', borderRadius: 12,
-    paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: '#7c3aed55',
+    flex: 1, backgroundColor: colors.card, borderRadius: 12,
+    paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.borderCyan,
   },
-  newPhotoBtnTxt: { color: '#a78bfa', fontSize: 14, fontWeight: '600' },
+  newPhotoBtnTxt: { color: colors.textCyan, fontSize: 14, fontWeight: '600' },
 });

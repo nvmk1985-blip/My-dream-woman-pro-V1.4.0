@@ -24,6 +24,11 @@ import {
 } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { requestPhotoVideoPermissionsAsync } from '../services/media-permissions';
+import themeTokens from '../constants/colors';
+import { useColors } from '../hooks/useColors';
+import { createThemedStyles } from '../utils/themed-styles';
+
+const C = themeTokens.dark;
 
 const CUSTOM_CHARS_KEY = 'cloud_custom_chars';
 
@@ -302,6 +307,7 @@ type Depth = 0 | 1 | 2;
 const FOLDER_COLORS = ['#E91E63','#9C27B0','#3F51B5','#2196F3','#009688','#FF5722','#795548','#607D8B'];
 
 export default function AIGirlsCloudScreen() {
+  const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const ALREADY_PATCHED = true; const { charId } = useLocalSearchParams<{ charId?: string }>();
@@ -956,13 +962,13 @@ export default function AIGirlsCloudScreen() {
       {depth === 2 ? (
         <TouchableOpacity style={s.uploadBtn} onPress={handleUpload} disabled={uploading}>
           {uploading
-            ? <ActivityIndicator color="#fff" size="small" />
-            : <Text style={s.uploadBtnTxt}>⬆ Upload</Text>
+            ? <ActivityIndicator color={colors.textPrimary} size="small" />
+            : <Text style={[s.uploadBtnTxt, { color: colors.textOnGold }]}>⬆ Upload</Text>
           }
         </TouchableOpacity>
       ) : (
-        <View style={[s.uploadBtn, { backgroundColor: '#ccc' }]}>
-          <Text style={[s.uploadBtnTxt, { color: '#888' }]}>⬆ Upload</Text>
+        <View style={[s.uploadBtn, { backgroundColor: colors.buttonDisabled }]}>
+          <Text style={[s.uploadBtnTxt, { color: colors.textDisabled }]}>⬆ Upload</Text>
         </View>
       )}
       {depth !== 2 ? (
@@ -970,8 +976,8 @@ export default function AIGirlsCloudScreen() {
           <Text style={s.newFolderTxt}>📁 New Folder</Text>
         </TouchableOpacity>
       ) : (
-        <View style={[s.newFolderBtn, { backgroundColor: '#555' }]}>
-          <Text style={[s.newFolderTxt, { color: '#999' }]}>📁 New Folder</Text>
+        <View style={[s.newFolderBtn, { backgroundColor: colors.buttonSecondary }]}>
+          <Text style={[s.newFolderTxt, { color: colors.textMuted }]}>📁 New Folder</Text>
         </View>
       )}
     </View>
@@ -1045,7 +1051,7 @@ export default function AIGirlsCloudScreen() {
         {renderActionBar()}
         {loadingPhotos ? (
           <View style={s.centerWrap}>
-            <ActivityIndicator size="large" color="#E67E22" />
+            <ActivityIndicator size="large" color={colors.goldPrimary} />
             <Text style={s.loadingTxt}>Cloud-ல் இருந்து photos load பண்றேன்...</Text>
           </View>
         ) : photos.length === 0 ? (
@@ -1142,7 +1148,7 @@ export default function AIGirlsCloudScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
-      <View style={[s.header, { paddingTop: insets.top + 14 }]}>
+      <View style={[s.header, { backgroundColor: colors.bgSecondary, borderBottomWidth: 1, borderBottomColor: colors.glassCyanBorder, paddingTop: insets.top + 14 }]}>
         <TouchableOpacity onPress={goBack} style={s.backBtn}>
           <Text style={s.backTxt}>‹</Text>
         </TouchableOpacity>
@@ -1172,7 +1178,7 @@ export default function AIGirlsCloudScreen() {
           <Image source={{ uri: fullView.originalUrl || fullView.url }} style={s.fullViewImg} resizeMode="contain" />
           <View style={s.fullViewActions}>
             <TouchableOpacity style={s.fullViewSave} onPress={() => handleSaveToGallery(fullView)} disabled={savingPhoto}>
-              <Text style={s.fullViewSaveTxt}>{savingPhoto ? '⏳ Saving...' : '⬇️ Gallery Save'}</Text>
+              <Text style={[s.fullViewSaveTxt, { color: colors.bgDeep }]}>{savingPhoto ? '⏳ Saving...' : '⬇️ Gallery Save'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={s.fullViewDelete} onPress={() => { setFullView(null); handleDeletePhoto(fullView); }}>
               <Text style={s.fullViewDeleteTxt}>🗑 Delete</Text>
@@ -1205,7 +1211,7 @@ export default function AIGirlsCloudScreen() {
       {uploading && uploadTotal > 0 && (
         <View style={s.confirmOverlay}>
           <View style={s.progressBox}>
-            <ActivityIndicator size="large" color="#E67E22" />
+            <ActivityIndicator size="large" color={colors.goldPrimary} />
             <Text style={s.progressTitle}>Upload பண்றேன்...</Text>
             <Text style={s.progressCount}>{uploadProgress} / {uploadTotal} photos</Text>
             <View style={s.progressBarBg}>
@@ -1250,7 +1256,7 @@ export default function AIGirlsCloudScreen() {
             <TextInput
               style={s.dialogInput}
               placeholder="Folder பெயர் உள்ளிடுங்க"
-              placeholderTextColor="#aaa"
+              placeholderTextColor={colors.inputPlaceholder}
               value={folderName}
               onChangeText={setFolderName}
               autoFocus
@@ -1262,7 +1268,7 @@ export default function AIGirlsCloudScreen() {
                 <Text style={s.dialogCancelTxt}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.dialogOk} onPress={confirmNewFolder}>
-                <Text style={s.dialogOkTxt}>✅ உருவாக்கு</Text>
+                <Text style={[s.dialogOkTxt, { color: colors.textOnGold }]}>✅ உருவாக்கு</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1272,12 +1278,12 @@ export default function AIGirlsCloudScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const s = createThemedStyles({
   safe: { flex: 1, backgroundColor: '#fff' },
 
   // Header
   header: {
-    backgroundColor: '#1565C0',
+    backgroundColor: C.bgSecondary,
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 8, paddingVertical: 14,
   },
@@ -1471,7 +1477,7 @@ const s = StyleSheet.create({
   // ── Folder Browser styles ─────────────────────────────────────────────────
   fbSafe: { flex: 1, backgroundColor: '#0d1117' },
   fbHeader: {
-    backgroundColor: '#1565C0', flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.bgSecondary, flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 12, paddingVertical: 14, gap: 10,
   },
   fbBackBtn: { paddingHorizontal: 6, paddingVertical: 4 },

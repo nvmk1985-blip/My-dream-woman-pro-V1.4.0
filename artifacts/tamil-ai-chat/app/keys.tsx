@@ -6,7 +6,11 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+import themeTokens from '../constants/colors';
+import { useColors } from '../hooks/useColors';
 
+const C = themeTokens.dark;
 const DEVICE_KEY_STORAGE = 'device_key';
 const KEYS_STORAGE = 'api_keys_store';
 const KEYS_ENABLED_STORAGE = 'api_keys_enabled_v1';
@@ -76,25 +80,29 @@ async function testKey(id: string, value: string): Promise<KeyStatus> {
 }
 
 function StatusBadge({ status }: { status: KeyStatus }) {
-  if (status === 'checking') return <ActivityIndicator size="small" color="#f59e0b" style={{ marginRight: 8 }} />;
+  const colors = useColors();
+  if (status === 'checking') return <ActivityIndicator size="small" color={colors.warning} style={{ marginRight: 8 }} />;
   if (status === 'ok') return (
-    <View style={[sb.badge, sb.ok]}><Text style={sb.txt}>✅ OK</Text></View>
+    <View style={[sb.badge, sb.ok]}><Ionicons name="checkmark-circle" size={13} color={C.success} /><Text style={[sb.txt, sb.statusOk]}>OK</Text></View>
   );
   if (status === 'error') return (
-    <View style={[sb.badge, sb.err]}><Text style={sb.txt}>❌ INVALID</Text></View>
+    <View style={[sb.badge, sb.err]}><Ionicons name="close-circle" size={13} color={C.error} /><Text style={[sb.txt, sb.statusError]}>INVALID</Text></View>
   );
   return <View style={[sb.badge, sb.idle]}><Text style={sb.txt}>EMPTY</Text></View>;
 }
 
 const sb = StyleSheet.create({
-  badge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginRight: 6 },
-  ok: { backgroundColor: '#065f46' },
-  err: { backgroundColor: '#7f1d1d' },
-  idle: { backgroundColor: '#374151' },
-  txt: { color: '#fff', fontSize: 10, fontWeight: '800' },
+  badge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginRight: 6, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  ok: { backgroundColor: C.bgSecondary, borderWidth: 1, borderColor: C.success },
+  err: { backgroundColor: C.bgSecondary, borderWidth: 1, borderColor: C.error },
+  idle: { backgroundColor: C.buttonDisabled },
+  txt: { color: C.textSecondary, fontSize: 10, fontWeight: '800' },
+  statusOk: { color: C.success },
+  statusError: { color: C.error },
 });
 
 export default function KeysScreen() {
+  const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [deviceKey, setDeviceKey] = useState('');
@@ -497,20 +505,20 @@ export default function KeysScreen() {
 
   return (
     <SafeAreaView style={s.safe} edges={['left','right','bottom']}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <StatusBar translucent backgroundColor={C.bgPrimary} barStyle="light-content" />
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
       <View style={[s.header, { paddingTop: insets.top + 14 }]}>
-        <Text style={s.headerIcon}>🔐</Text>
+        <Ionicons name="key-outline" size={22} color={colors.goldPrimary} style={s.headerIcon} />
         <Text style={s.headerTitle}>Keys & Accounts</Text>
         <TouchableOpacity style={s.checkAllBtn} onPress={checkAllNow} disabled={checkingAll}>
           {checkingAll
-            ? <ActivityIndicator size="small" color="#fff" />
-            : <Text style={s.checkAllTxt}>🔍 Check All</Text>}
+            ? <ActivityIndicator size="small" color={colors.textOnCyan} />
+            : <View style={s.buttonLabelRow}><Ionicons name="search-outline" size={15} color={colors.textOnCyan} /><Text style={s.checkAllTxt}>Check All</Text></View>}
         </TouchableOpacity>
         <TouchableOpacity style={s.addBtn} onPress={() => setAddModal(true)}>
-          <Text style={s.addBtnTxt}>+</Text>
+          <Ionicons name="add" size={22} color={colors.textOnGold} />
         </TouchableOpacity>
       </View>
 
@@ -538,7 +546,7 @@ export default function KeysScreen() {
             <Text style={s.summaryLbl}>Media OK</Text>
           </View>
           <TouchableOpacity style={s.recheckBtn} onPress={checkAllNow}>
-            <Text style={s.recheckTxt}>↺</Text>
+            <Ionicons name="refresh-outline" size={16} color={colors.textCyan} />
           </TouchableOpacity>
         </View>
 
@@ -547,17 +555,17 @@ export default function KeysScreen() {
           <Text style={s.deviceKeyLabel}>DEVICE KEY</Text>
           <View style={s.deviceKeyRow}>
             <TextInput style={s.deviceKeyInput} value={deviceKey} onChangeText={setDeviceKey}
-              autoCapitalize="none" placeholderTextColor="#555" />
+              autoCapitalize="none" placeholderTextColor={colors.inputPlaceholder} />
             <TouchableOpacity style={s.clearBtn} onPress={() => setDeviceKey('')}>
-              <Text style={s.clearBtnTxt}>✕</Text>
+            <Ionicons name="close" size={17} color={colors.textTertiary} />
             </TouchableOpacity>
           </View>
           <View style={s.cloudBtns}>
             <TouchableOpacity style={s.cloudLoadBtn} onPress={() => loadServerDefaults(false)}>
-              <Text style={s.cloudBtnTxt}>☁️ Load Server Defaults</Text>
+              <View style={s.buttonLabelRow}><Ionicons name="cloud-download-outline" size={16} color={colors.textOnCyan} /><Text style={s.cloudBtnTxt}>Load Server Defaults</Text></View>
             </TouchableOpacity>
             <TouchableOpacity style={s.cloudSaveBtn} onPress={cloudSave} disabled={syncing}>
-              {syncing ? <ActivityIndicator color="#fff" /> : <Text style={s.cloudBtnTxt}>💾 Cloud Save</Text>}
+              {syncing ? <ActivityIndicator color={colors.textPrimary} /> : <View style={s.buttonLabelRow}><Ionicons name="cloud-upload-outline" size={16} color={colors.textOnGold} /><Text style={s.cloudBtnTxt}>Cloud Save</Text></View>}
             </TouchableOpacity>
           </View>
         </View>
@@ -566,7 +574,7 @@ export default function KeysScreen() {
         <View style={s.geminiSection}>
           <TouchableOpacity style={s.sectionHeader} onPress={() => setGeminiSectionOpen(p => !p)} activeOpacity={0.7}>
             <View style={s.sectionHeaderLeft}>
-              <Text style={s.sectionHeaderIcon}>🤖</Text>
+              <Ionicons name="sparkles-outline" size={24} color={colors.cyanPrimary} />
               <View>
                 <Text style={s.sectionHeaderTitle}>Chat Gemini Keys</Text>
                 <Text style={s.sectionHeaderSub}>Key 1–13 · Round-robin rotation</Text>
@@ -574,9 +582,9 @@ export default function KeysScreen() {
             </View>
             <View style={s.sectionHeaderRight}>
               <View style={[s.activeBadge, activeGeminiCount > 0 && s.activeBadgeOn]}>
-                <Text style={s.activeBadgeTxt}>{activeGeminiCount} active</Text>
+                <Text style={[s.activeBadgeTxt, activeGeminiCount > 0 && s.activeBadgeTxtOn]}>{activeGeminiCount} active</Text>
               </View>
-              <Text style={s.sectionArrow}>{geminiSectionOpen ? '▲' : '▼'}</Text>
+              <Ionicons name={geminiSectionOpen ? 'chevron-up' : 'chevron-down'} size={17} color={colors.textTertiary} />
             </View>
           </TouchableOpacity>
 
@@ -584,10 +592,10 @@ export default function KeysScreen() {
             <>
               <View style={s.rotationBar}>
                 <Text style={s.rotationTxt}>
-                  🔄 Now using Key {(rotationIdx % Math.max(activeGeminiCount, 1)) + 1} · {activeGeminiCount} active
+                  Now using Key {(rotationIdx % Math.max(activeGeminiCount, 1)) + 1} · {activeGeminiCount} active
                 </Text>
                 <TouchableOpacity style={s.resetBtn} onPress={resetRotation}>
-                  <Text style={s.resetBtnTxt}>Reset</Text>
+                    <Text style={s.resetBtnTxt}>Reset</Text>
                 </TouchableOpacity>
               </View>
 
@@ -604,10 +612,10 @@ export default function KeysScreen() {
                       </Text>
                     </View>
                     <Switch value={geminiEnabled[i] && !!val} onValueChange={v => toggleGeminiEnabled(i, v)}
-                      disabled={!val} trackColor={{ false: '#444', true: '#25D366' }}
-                      thumbColor={geminiEnabled[i] ? '#fff' : '#888'} style={{ marginRight: 4 }} />
+                      disabled={!val} trackColor={{ false: colors.buttonDisabled, true: colors.cyanPrimary }}
+                      thumbColor={geminiEnabled[i] ? colors.textPrimary : colors.textMuted} style={{ marginRight: 4 }} />
                     <StatusBadge status={val ? geminiStatuses[i] : 'idle'} />
-                    <Text style={s.sectionArrow}>{geminiExpanded[i] ? '▲' : '▼'}</Text>
+                    <Ionicons name={geminiExpanded[i] ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textTertiary} />
                   </TouchableOpacity>
 
                   {geminiExpanded[i] && (
@@ -617,12 +625,12 @@ export default function KeysScreen() {
                         value={val}
                         onChangeText={v => { const n = [...geminiKeys]; n[i] = v; setGeminiKeys(n); }}
                         placeholder="AIzaSy... paste பண்ணுங்க"
-                        placeholderTextColor="#555"
+                        placeholderTextColor={colors.inputPlaceholder}
                         secureTextEntry autoCapitalize="none"
                       />
                       <View style={s.slotBtns}>
                         <TouchableOpacity style={s.saveKeyBtn} onPress={() => saveGeminiKey(i)} disabled={saving}>
-                          <Text style={s.saveKeyBtnTxt}>💾 Save & Test</Text>
+                          <View style={s.buttonLabelRow}><Ionicons name="save-outline" size={15} color={colors.textOnGold} /><Text style={s.saveKeyBtnTxt}>Save & Test</Text></View>
                         </TouchableOpacity>
                         <TouchableOpacity style={s.clearSlotBtn} onPress={() => clearGeminiKey(i)}>
                           <Text style={s.clearSlotBtnTxt}>Clear</Text>
@@ -648,7 +656,7 @@ export default function KeysScreen() {
         <View style={s.multimediaSection}>
           <TouchableOpacity style={s.multimediaSectionHeader} onPress={() => setMultimediaSectionOpen(p => !p)} activeOpacity={0.7}>
             <View style={s.sectionHeaderLeft}>
-              <Text style={s.sectionHeaderIcon}>🎬</Text>
+              <Ionicons name="images-outline" size={24} color={colors.goldPrimary} />
               <View>
                 <Text style={s.multimediaSectionTitle}>MULTIMEDIA</Text>
                 <Text style={s.sectionHeaderSub}>Image · Video · Document — Key 1–5</Text>
@@ -656,9 +664,9 @@ export default function KeysScreen() {
             </View>
             <View style={s.sectionHeaderRight}>
               <View style={[s.activeBadge, activeMultimediaCount > 0 && s.multimediaActiveBadgeOn]}>
-                <Text style={s.activeBadgeTxt}>{activeMultimediaCount} active</Text>
+                <Text style={[s.activeBadgeTxt, activeMultimediaCount > 0 && s.multimediaActiveBadgeTxtOn]}>{activeMultimediaCount} active</Text>
               </View>
-              <Text style={s.sectionArrow}>{multimediaSectionOpen ? '▲' : '▼'}</Text>
+              <Ionicons name={multimediaSectionOpen ? 'chevron-up' : 'chevron-down'} size={17} color={colors.textTertiary} />
             </View>
           </TouchableOpacity>
 
@@ -677,10 +685,10 @@ export default function KeysScreen() {
                       </Text>
                     </View>
                     <Switch value={multimediaEnabled[i] && !!val} onValueChange={v => toggleMultimediaEnabled(i, v)}
-                      disabled={!val} trackColor={{ false: '#444', true: '#f59e0b' }}
-                      thumbColor={multimediaEnabled[i] ? '#fff' : '#888'} style={{ marginRight: 4 }} />
+                      disabled={!val} trackColor={{ false: colors.buttonDisabled, true: colors.goldPrimary }}
+                      thumbColor={multimediaEnabled[i] ? colors.textPrimary : colors.textMuted} style={{ marginRight: 4 }} />
                     <StatusBadge status={val ? multimediaStatuses[i] : 'idle'} />
-                    <Text style={s.sectionArrow}>{multimediaExpanded[i] ? '▲' : '▼'}</Text>
+                    <Ionicons name={multimediaExpanded[i] ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textTertiary} />
                   </TouchableOpacity>
 
                   {multimediaExpanded[i] && (
@@ -690,12 +698,12 @@ export default function KeysScreen() {
                         value={val}
                         onChangeText={v => { const n = [...multimediaKeys]; n[i] = v; setMultimediaKeys(n); }}
                         placeholder="AIzaSy... paste பண்ணுங்க"
-                        placeholderTextColor="#555"
+                        placeholderTextColor={colors.inputPlaceholder}
                         secureTextEntry autoCapitalize="none"
                       />
                       <View style={s.slotBtns}>
                         <TouchableOpacity style={s.multimediaSaveBtn} onPress={() => saveMultimediaKey(i)} disabled={saving}>
-                          <Text style={s.saveKeyBtnTxt}>💾 Save & Test</Text>
+                          <View style={s.buttonLabelRow}><Ionicons name="save-outline" size={15} color={colors.textOnGold} /><Text style={s.saveKeyBtnTxt}>Save & Test</Text></View>
                         </TouchableOpacity>
                         <TouchableOpacity style={s.clearSlotBtn} onPress={() => clearMultimediaKey(i)}>
                           <Text style={s.clearSlotBtnTxt}>Clear</Text>
@@ -724,7 +732,7 @@ export default function KeysScreen() {
           <View key={key.id} style={[s.keyCard, key.status === 'ok' ? s.keyCardOk : null]}>
             <TouchableOpacity style={s.keyRow} onPress={() => toggleExpand(key.id)} activeOpacity={0.7}>
               <View style={s.keyIconWrap}>
-                <Text style={s.keyIcon}>🔑</Text>
+                <Ionicons name="key-outline" size={18} color={colors.goldPrimary} />
               </View>
               <View style={s.keyInfo}>
                 <Text style={s.keyLabel}>{key.label}</Text>
@@ -734,17 +742,17 @@ export default function KeysScreen() {
                 value={key.enabled && !!key.value}
                 onValueChange={v => toggleEnabled(key.id, v)}
                 disabled={!key.value}
-                trackColor={{ false: '#444', true: '#25D366' }}
-                thumbColor={key.enabled ? '#fff' : '#888'}
+                trackColor={{ false: colors.buttonDisabled, true: colors.cyanPrimary }}
+                thumbColor={key.enabled ? colors.textPrimary : colors.textMuted}
                 style={{ marginRight: 4 }}
               />
               <StatusBadge status={key.value ? key.status : 'idle'} />
               {!DEFAULT_KEYS.some(d => d.id === key.id) && (
                 <TouchableOpacity onPress={() => deleteCustomKey(key.id, key.label)} style={s.keyTrash}>
-                  <Text style={{ fontSize: 16 }}>🗑</Text>
+                  <Ionicons name="trash-outline" size={16} color={colors.error} />
                 </TouchableOpacity>
               )}
-              <Text style={s.expandArrow}>{key.expanded ? '▲' : '▼'}</Text>
+              <Ionicons name={key.expanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textTertiary} />
             </TouchableOpacity>
 
             {key.expanded && (
@@ -754,12 +762,12 @@ export default function KeysScreen() {
                   value={key.value}
                   onChangeText={v => setKeys(prev => prev.map(k => k.id === key.id ? { ...k, value: v } : k))}
                   placeholder={`${key.label} enter பண்ணுங்க...`}
-                  placeholderTextColor="#555"
+                  placeholderTextColor={colors.inputPlaceholder}
                   secureTextEntry={key.id !== 'hf'}
                   autoCapitalize="none"
                 />
                 <TouchableOpacity style={s.saveKeyBtn} onPress={() => saveKey(key.id, key.value)} disabled={saving}>
-                  <Text style={s.saveKeyBtnTxt}>💾 Save & Test</Text>
+                  <View style={s.buttonLabelRow}><Ionicons name="save-outline" size={15} color={colors.textOnGold} /><Text style={s.saveKeyBtnTxt}>Save & Test</Text></View>
                 </TouchableOpacity>
               </View>
             )}
@@ -771,11 +779,11 @@ export default function KeysScreen() {
       <Modal visible={addModal} transparent animationType="slide" onRequestClose={() => setAddModal(false)}>
         <View style={s.modalOverlay}>
           <View style={s.modalBox}>
-            <Text style={s.modalTitle}>🔑 புதிய Key சேர்</Text>
+            <View style={s.modalTitleRow}><Ionicons name="key-outline" size={20} color={colors.goldPrimary} /><Text style={s.modalTitle}>புதிய Key சேர்</Text></View>
             <TextInput style={s.modalInput} value={newLabel} onChangeText={setNewLabel}
-              placeholder="Key பெயர் (e.g. OpenAI...)" placeholderTextColor="#555" autoFocus />
+              placeholder="Key பெயர் (e.g. OpenAI...)" placeholderTextColor={colors.inputPlaceholder} autoFocus />
             <TextInput style={[s.modalInput, { marginTop: 10 }]} value={newSite} onChangeText={setNewSite}
-              placeholder="Website (e.g. openai.com)" placeholderTextColor="#555" autoCapitalize="none" />
+              placeholder="Website (e.g. openai.com)" placeholderTextColor={colors.inputPlaceholder} autoCapitalize="none" />
             <View style={s.modalBtns}>
               <TouchableOpacity style={s.modalCancel} onPress={() => setAddModal(false)}>
                 <Text style={s.modalCancelTxt}>Cancel</Text>
@@ -792,144 +800,142 @@ export default function KeysScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0d1117' },
+  safe: { flex: 1, backgroundColor: C.bgPrimary },
   header: {
-    backgroundColor: '#0d6e7a', flexDirection: 'row',
+    backgroundColor: C.bgSecondary, flexDirection: 'row',
     alignItems: 'center', gap: 10,
     paddingHorizontal: 16, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: C.glassGoldBorder,
   },
-  headerIcon: { fontSize: 22 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', flex: 1 },
+  headerIcon: { width: 28 },
+  headerTitle: { color: C.textPrimary, fontSize: 18, fontWeight: 'bold', flex: 1 },
+  buttonLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   checkAllBtn: {
-    backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20,
-    paddingHorizontal: 12, paddingVertical: 6,
+    backgroundColor: C.cyanSoft, borderWidth: 1, borderColor: C.cyanBorder, borderRadius: 20,
+    paddingHorizontal: 11, paddingVertical: 7,
   },
-  checkAllTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  addBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
-  addBtnTxt: { color: '#fff', fontSize: 20, fontWeight: 'bold', lineHeight: 26 },
+  checkAllTxt: { color: C.textCyan, fontSize: 12, fontWeight: '700' },
+  addBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.buttonGold, justifyContent: 'center', alignItems: 'center' },
   scroll: { padding: 14, paddingBottom: 90 },
 
   summaryBar: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#111827', borderRadius: 12, padding: 14, marginBottom: 14,
-    borderWidth: 1, borderColor: '#1f2937',
+    backgroundColor: C.card, borderRadius: 14, padding: 12, marginBottom: 14,
+    borderWidth: 1, borderColor: C.borderSubtle,
   },
   summaryItem: { flex: 1, alignItems: 'center' },
-  summaryNum: { color: '#7dd3fc', fontSize: 22, fontWeight: '800' },
-  summaryLbl: { color: '#6b7280', fontSize: 11, marginTop: 2 },
-  summaryDivider: { width: 1, height: 36, backgroundColor: '#1f2937' },
-  recheckBtn: { marginLeft: 12, backgroundColor: '#1e3a4a', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
-  recheckTxt: { color: '#7dd3fc', fontSize: 12, fontWeight: '700' },
+  summaryNum: { color: C.textCyan, fontSize: 21, fontWeight: '800' },
+  summaryLbl: { color: C.textTertiary, fontSize: 10, marginTop: 2, textAlign: 'center' },
+  summaryDivider: { width: 1, height: 36, backgroundColor: C.borderSubtle },
+  recheckBtn: { marginLeft: 10, backgroundColor: C.cyanSoft, borderWidth: 1, borderColor: C.cyanBorder, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 7 },
 
   deviceKeyCard: {
-    backgroundColor: '#111827', borderRadius: 14, padding: 16,
-    marginBottom: 14, borderWidth: 1.5, borderColor: '#0d6e7a',
+    backgroundColor: C.card, borderRadius: 16, padding: 16,
+    marginBottom: 14, borderWidth: 1, borderColor: C.glassGoldBorder,
   },
-  deviceKeyLabel: { color: '#0d6e7a', fontSize: 11, fontWeight: '800', letterSpacing: 0.8, marginBottom: 10 },
+  deviceKeyLabel: { color: C.goldBright, fontSize: 11, fontWeight: '800', letterSpacing: 0.8, marginBottom: 10 },
   deviceKeyRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1f2937', borderRadius: 10,
-    borderWidth: 1, borderColor: '#374151', marginBottom: 12,
+    backgroundColor: C.inputBackground, borderRadius: 12,
+    borderWidth: 1, borderColor: C.inputBorder, marginBottom: 12,
   },
-  deviceKeyInput: { flex: 1, color: '#e5e7eb', fontSize: 14, padding: 12, fontFamily: 'monospace' },
+  deviceKeyInput: { flex: 1, color: C.inputText, fontSize: 14, padding: 12, fontFamily: 'monospace' },
   clearBtn: { paddingHorizontal: 12, paddingVertical: 12 },
-  clearBtnTxt: { color: '#6b7280', fontSize: 16 },
   cloudBtns: { flexDirection: 'row', gap: 10 },
-  cloudLoadBtn: { flex: 1, backgroundColor: '#1565C0', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  cloudSaveBtn: { flex: 1, backgroundColor: '#374151', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  cloudBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  cloudLoadBtn: { flex: 1, backgroundColor: C.buttonCyan, borderRadius: 11, paddingVertical: 12, alignItems: 'center' },
+  cloudSaveBtn: { flex: 1, backgroundColor: C.buttonGold, borderRadius: 11, paddingVertical: 12, alignItems: 'center' },
+  cloudBtnTxt: { color: C.textOnGold, fontWeight: '700', fontSize: 13 },
 
   sectionHeader: {
-    backgroundColor: '#0d1f2d', borderRadius: 12, padding: 14,
-    marginBottom: 2, borderWidth: 1.5, borderColor: '#1a4a5a',
+    backgroundColor: C.cardSecondary, borderRadius: 14, padding: 14,
+    marginBottom: 2, borderWidth: 1, borderColor: C.cyanBorder,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   sectionHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  sectionHeaderIcon: { fontSize: 26 },
-  sectionHeaderTitle: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  sectionHeaderSub: { color: '#6b9aaa', fontSize: 11, marginTop: 2 },
+  sectionHeaderTitle: { color: C.textPrimary, fontSize: 14, fontWeight: '700' },
+  sectionHeaderSub: { color: C.textTertiary, fontSize: 11, marginTop: 2 },
   sectionHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  activeBadge: { backgroundColor: '#333', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  activeBadgeOn: { backgroundColor: '#065f46' },
-  activeBadgeTxt: { color: '#9ca3af', fontSize: 11, fontWeight: '800' },
-  sectionArrow: { color: '#6b7280', fontSize: 14 },
+  activeBadge: { backgroundColor: C.buttonDisabled, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  activeBadgeOn: { backgroundColor: C.success },
+  activeBadgeTxt: { color: C.textTertiary, fontSize: 10, fontWeight: '800' },
+  activeBadgeTxtOn: { color: C.textOnCyan },
 
   geminiSection: {
-    backgroundColor: '#0a1520', borderRadius: 12, marginBottom: 14,
-    borderWidth: 1, borderColor: '#1a4a5a', overflow: 'hidden',
+    backgroundColor: C.bgSecondary, borderRadius: 14, marginBottom: 14,
+    borderWidth: 1, borderColor: C.borderSubtle, overflow: 'hidden',
   },
   rotationBar: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#0d2233', paddingHorizontal: 14, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: '#1a3a4a',
+    backgroundColor: C.cyanSoft, paddingHorizontal: 14, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: C.borderSubtle,
   },
-  rotationTxt: { flex: 1, color: '#7dd3fc', fontSize: 12 },
-  resetBtn: { backgroundColor: '#1e3a4a', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-  resetBtnTxt: { color: '#7dd3fc', fontSize: 12, fontWeight: '700' },
+  rotationTxt: { flex: 1, color: C.textCyan, fontSize: 12 },
+  resetBtn: { backgroundColor: C.buttonSecondary, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  resetBtnTxt: { color: C.textCyan, fontSize: 12, fontWeight: '700' },
 
-  geminiSlot: { borderBottomWidth: 1, borderBottomColor: '#111d2a' },
-  geminiSlotOk: { backgroundColor: '#071a10' },
+  geminiSlot: { borderBottomWidth: 1, borderBottomColor: C.borderSubtle },
+  geminiSlotOk: { backgroundColor: C.bgSecondary },
   geminiSlotRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12 },
-  slotNumBadge: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#1e2d3a', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  slotNumBadgeOn: { backgroundColor: '#065f46' },
-  slotNumTxt: { color: '#7dd3fc', fontSize: 13, fontWeight: '800' },
+  slotNumBadge: { width: 32, height: 32, borderRadius: 10, backgroundColor: C.cardElevated, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  slotNumBadgeOn: { backgroundColor: C.cyanPrimary },
+  slotNumTxt: { color: C.textCyan, fontSize: 13, fontWeight: '800' },
   slotInfo: { flex: 1 },
-  slotLabel: { color: '#e5e7eb', fontSize: 14, fontWeight: '600' },
-  slotValue: { color: '#6b7280', fontSize: 11, marginTop: 2, fontFamily: 'monospace' },
+  slotLabel: { color: C.textPrimary, fontSize: 14, fontWeight: '600' },
+  slotValue: { color: C.textMuted, fontSize: 11, marginTop: 2, fontFamily: 'monospace' },
 
-  geminiSlotExpanded: { paddingHorizontal: 14, paddingBottom: 14, borderTopWidth: 1, borderTopColor: '#1a3a4a' },
+  geminiSlotExpanded: { paddingHorizontal: 14, paddingBottom: 14, borderTopWidth: 1, borderTopColor: C.borderSubtle },
   slotBtns: { flexDirection: 'row', gap: 10, marginTop: 10 },
-  saveKeyBtn: { flex: 1, backgroundColor: '#1565C0', borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
-  saveKeyBtnTxt: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-  clearSlotBtn: { backgroundColor: '#7f1d1d', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10, alignItems: 'center' },
-  clearSlotBtnTxt: { color: '#fca5a5', fontWeight: 'bold', fontSize: 13 },
+  saveKeyBtn: { flex: 1, backgroundColor: C.buttonGold, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
+  saveKeyBtnTxt: { color: C.textOnGold, fontWeight: 'bold', fontSize: 13 },
+  clearSlotBtn: { backgroundColor: C.bgSecondary, borderColor: C.error, borderWidth: 1, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10, alignItems: 'center' },
+  clearSlotBtnTxt: { color: C.error, fontWeight: 'bold', fontSize: 13 },
 
-  geminiHint: { backgroundColor: '#0d2233', padding: 14, borderTopWidth: 1, borderTopColor: '#1a3a4a' },
-  geminiHintTxt: { color: '#6b9aaa', fontSize: 12, lineHeight: 20 },
+  geminiHint: { backgroundColor: C.card, padding: 14, borderTopWidth: 1, borderTopColor: C.borderSubtle },
+  geminiHintTxt: { color: C.textTertiary, fontSize: 12, lineHeight: 20 },
 
   // ── MULTIMEDIA section styles ─────────────────────────────────
   multimediaSection: {
-    backgroundColor: '#1a1200', borderRadius: 12, marginBottom: 14,
-    borderWidth: 1.5, borderColor: '#92400e', overflow: 'hidden',
+    backgroundColor: C.bgSecondary, borderRadius: 14, marginBottom: 14,
+    borderWidth: 1, borderColor: C.glassGoldBorder, overflow: 'hidden',
   },
   multimediaSectionHeader: {
-    backgroundColor: '#1c1400', padding: 14,
+    backgroundColor: C.cardSecondary, padding: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderBottomWidth: 1, borderBottomColor: '#92400e',
+    borderBottomWidth: 1, borderBottomColor: C.borderSubtle,
   },
-  multimediaSectionTitle: { color: '#fbbf24', fontSize: 15, fontWeight: '800', letterSpacing: 1 },
-  multimediaActiveBadgeOn: { backgroundColor: '#92400e' },
-  multimediaSlotOk: { backgroundColor: '#1a1000' },
-  multimediaNumBadgeOn: { backgroundColor: '#92400e' },
-  multimediaNumTxt: { color: '#fbbf24', fontSize: 13, fontWeight: '800' },
-  multimediaSaveBtn: { flex: 1, backgroundColor: '#92400e', borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
-  multimediaHint: { backgroundColor: '#1c1400', padding: 14, borderTopWidth: 1, borderTopColor: '#92400e' },
+  multimediaSectionTitle: { color: C.goldBright, fontSize: 15, fontWeight: '800', letterSpacing: 1 },
+  multimediaActiveBadgeOn: { backgroundColor: C.goldDark },
+  multimediaActiveBadgeTxtOn: { color: C.goldBright },
+  multimediaSlotOk: { backgroundColor: C.card },
+  multimediaNumBadgeOn: { backgroundColor: C.goldPrimary },
+  multimediaNumTxt: { color: C.goldBright, fontSize: 13, fontWeight: '800' },
+  multimediaSaveBtn: { flex: 1, backgroundColor: C.buttonGold, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
+  multimediaHint: { backgroundColor: C.card, padding: 14, borderTopWidth: 1, borderTopColor: C.borderSubtle },
 
-  otherKeysLabel: { color: '#6b7280', fontSize: 11, fontWeight: '800', letterSpacing: 1, marginBottom: 8, marginTop: 4 },
+  otherKeysLabel: { color: C.textTertiary, fontSize: 11, fontWeight: '800', letterSpacing: 1, marginBottom: 8, marginTop: 4 },
 
-  keyCard: { backgroundColor: '#111827', borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: '#1f2937', overflow: 'hidden' },
-  keyCardOk: { borderColor: '#065f46' },
+  keyCard: { backgroundColor: C.card, borderRadius: 14, marginBottom: 8, borderWidth: 1, borderColor: C.borderSubtle, overflow: 'hidden' },
+  keyCardOk: { borderColor: C.success },
   keyRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 14 },
-  keyIconWrap: { width: 38, height: 38, borderRadius: 10, backgroundColor: '#1f2937', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  keyIcon: { fontSize: 18 },
+  keyIconWrap: { width: 38, height: 38, borderRadius: 11, backgroundColor: C.cardSecondary, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   keyInfo: { flex: 1 },
-  keyLabel: { color: '#e5e7eb', fontSize: 15, fontWeight: '600' },
-  keySite: { color: '#6b7280', fontSize: 12, marginTop: 2 },
-  expandArrow: { color: '#6b7280', fontSize: 13 },
+  keyLabel: { color: C.textPrimary, fontSize: 15, fontWeight: '600' },
+  keySite: { color: C.textTertiary, fontSize: 12, marginTop: 2 },
   keyTrash: { paddingHorizontal: 8, paddingVertical: 4, marginRight: 4 },
-  keyExpanded: { paddingHorizontal: 14, paddingBottom: 14, borderTopWidth: 1, borderTopColor: '#1f2937', gap: 10 },
+  keyExpanded: { paddingHorizontal: 14, paddingBottom: 14, borderTopWidth: 1, borderTopColor: C.borderSubtle, gap: 10 },
   keyInput: {
-    backgroundColor: '#1f2937', borderRadius: 8, borderWidth: 1, borderColor: '#374151',
-    padding: 10, color: '#e5e7eb', fontSize: 13, marginTop: 10,
+    backgroundColor: C.inputBackground, borderRadius: 10, borderWidth: 1, borderColor: C.inputBorder,
+    padding: 10, color: C.inputText, fontSize: 13, marginTop: 10,
   },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 24 },
-  modalBox: { backgroundColor: '#1f2937', borderRadius: 18, padding: 24 },
-  modalTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
-  modalInput: { backgroundColor: '#111827', borderRadius: 10, borderWidth: 1, borderColor: '#374151', color: '#e5e7eb', fontSize: 14, paddingHorizontal: 14, paddingVertical: 12 },
+  modalOverlay: { flex: 1, backgroundColor: C.overlay, justifyContent: 'center', padding: 24 },
+  modalBox: { backgroundColor: C.leatherCharcoal, borderWidth: 1, borderColor: C.glassGoldBorder, borderRadius: 20, padding: 24 },
+  modalTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 16 },
+  modalTitle: { color: C.textPrimary, fontSize: 18, fontWeight: 'bold' },
+  modalInput: { backgroundColor: C.inputBackground, borderRadius: 12, borderWidth: 1, borderColor: C.inputBorder, color: C.inputText, fontSize: 14, paddingHorizontal: 14, paddingVertical: 12 },
   modalBtns: { flexDirection: 'row', gap: 12, marginTop: 20 },
-  modalCancel: { flex: 1, backgroundColor: '#374151', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  modalCancelTxt: { color: '#9ca3af', fontWeight: '700' },
-  modalAdd: { flex: 1, backgroundColor: '#0d6e7a', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  modalAddTxt: { color: '#fff', fontWeight: '700' },
+  modalCancel: { flex: 1, backgroundColor: C.buttonSecondary, borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  modalCancelTxt: { color: C.textSecondary, fontWeight: '700' },
+  modalAdd: { flex: 1, backgroundColor: C.buttonGold, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  modalAddTxt: { color: C.textOnGold, fontWeight: '700' },
 });
