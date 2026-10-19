@@ -6,7 +6,7 @@
 - Step 1 read-only audit: **முடிந்தது** — [step-1-audit.md](step-1-audit.md).
 - Step 2 shared design-token foundation: **முடிந்தது** — [step-2-design-system.md](step-2-design-system.md).
 - Step 2 visual design board and icon concept exports: **முடிந்தது** — [design guide](../docs/design-system/README.md), [UI implementation guide](../docs/AGENTS.md), and [updated Step 2 handoff](step-2-design-system.md) (handoff update commit `adafeb66f752`). The icon exports remain design-only and are not wired into app assets.
-- Steps 2–6 branch: `feature/black-leather-royal-gold` (இன்னும் `main`-க்கு merge செய்யப்படவில்லை). Step 2 token code commit `3e69dd3855e1576e7a5bdbfab1f1bd53f458af41`; Step 2 handoff/docs commit `f94c6cf6f0dea6d96a3aabe63f253551445e5ed6`.
+- Steps 2–6: **[PR #1](https://github.com/nvmk1985-blip/My-dream-woman-pro-V1.4.0/pull/1)** மூலம் `main`-க்கு 2026-10-18 அன்று merge செய்யப்பட்டன. Original branch: `feature/black-leather-royal-gold`. Step 2 token code commit `3e69dd3855e1576e7a5bdbfab1f1bd53f458af41`; Step 2 handoff/docs commit `f94c6cf6f0dea6d96a3aabe63f253551445e5ed6`.
 - Step 3 Settings modal, `/settings`, `/keys` UI redesign: **code முடிந்தது** — [step-3-settings.md](step-3-settings.md); code commit `1b80712041b1be007147dfaedec83d045dd95f96`.
 - Step 3 app typecheck மற்றும் live UI preview: **சரிபார்க்க முடியவில்லை** — worktree-ல் `node_modules` இல்லை; Expo workflow `expo` executable இல்லாததால் தொடங்கவில்லை. Dependency/lockfile பிரச்சினைகளை மாற்றவில்லை.
 - Step 4a Chat message/send/history: **முடிந்தது** — [step-4a-chat-messages-history.md](step-4a-chat-messages-history.md); code commit `e7d25367a9dfe98e64cb7094f2dda06f85855e2f` (feature branch மட்டும்).

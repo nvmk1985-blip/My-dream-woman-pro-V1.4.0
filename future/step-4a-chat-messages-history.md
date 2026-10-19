@@ -2,7 +2,7 @@
 
 ## நிலை
 - User-ன் Step 4a approval-ன் கீழ், ஏற்கெனவே உள்ள My Dream Woman Pro app-இல் மட்டும் code மாற்றப்பட்டது.
-- Branch: feature/black-leather-royal-gold; main-க்கு merge செய்யப்படவில்லை.
+- Original branch: `feature/black-leather-royal-gold`; [PR #1](https://github.com/nvmk1985-blip/My-dream-woman-pro-V1.4.0/pull/1) மூலம் `main`-க்கு 2026-10-18 அன்று merge செய்யப்பட்டது.
 - Chat source code commit: e7d25367a9dfe98e64cb7094f2dda06f85855e2f.
 - Step 4a-வில் Chat screen redesign செய்யப்படவில்லை; தற்போதைய layout, Tamil copy, media/URL செயல்பாடுகள் பாதுகாக்கப்பட்டன.
 

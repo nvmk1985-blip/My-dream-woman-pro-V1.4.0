@@ -1,7 +1,7 @@
 # Step 3 — Settings modal, `/settings`, `/keys`
 
 ## நிலை
-- Step 3 UI code மாற்றங்கள் `feature/black-leather-royal-gold` branch-ல் commit செய்யப்பட்டுள்ளன; `main`-க்கு merge செய்யப்படவில்லை.
+- Step 3 UI code மாற்றங்கள் `feature/black-leather-royal-gold` branch-ல் commit செய்யப்பட்டு [PR #1](https://github.com/nvmk1985-blip/My-dream-woman-pro-V1.4.0/pull/1) மூலம் `main`-க்கு 2026-10-18 அன்று merge செய்யப்பட்டன.
 - Code commit: `1b80712041b1be007147dfaedec83d045dd95f96`.
 - Step 2 code `3e69dd3855e1576e7a5bdbfab1f1bd53f458af41`-ல் இருந்தது; Step 2 handoff/docs commit `f94c6cf6f0dea6d96a3aabe63f253551445e5ed6`.
 - Step 3-க்கு user அனுமதி கிடைத்தது. Step 4-க்கு முன் தனியான வெளிப்படையான approval தேவை.
