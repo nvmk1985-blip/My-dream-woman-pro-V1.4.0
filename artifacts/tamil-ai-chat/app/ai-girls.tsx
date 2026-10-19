@@ -1146,34 +1146,6 @@ Then write these prompts:
         />
       )}
 
-      {/* Floating action buttons */}
-      <View style={[s.fab, { bottom: insets.bottom + 16 }]}>
-        <TouchableOpacity style={[s.fabBtn, s.fabQuiet]} onPress={() => router.push('/prompt-image')}>
-          <Ionicons name="color-palette-outline" style={s.fabIcon} color={C.cyanPrimary} />
-          <Text style={s.fabLabel}>Text→Img</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[s.fabBtn, s.fabPrimary]} onPress={() => setShowAddCharModal(true)}>
-          <Ionicons name="person-add-outline" style={s.fabIcon} color={C.textOnGold} />
-          <Text style={[s.fabLabel, s.fabPrimaryLabel]}>Character</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[s.fabBtn, s.fabSecondary]} onPress={() => setShowGroupModal(true)}>
-          <Ionicons name="people-outline" style={s.fabIcon} color={C.textOnCyan} />
-          <Text style={[s.fabLabel, s.fabSecondaryLabel]}>Group</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[s.fabBtn, s.fabQuiet]} onPress={handlePhotoToScript}>
-          <Image source={require('../assets/images/photo-to-script-icon.png')} style={s.fabScriptImg} />
-          <Text style={s.fabLabel}>Script</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[s.fabBtn, s.fabQuiet]} onPress={() => router.push('/face-swap')}>
-          <Ionicons name="camera-reverse-outline" style={s.fabIcon} color={C.goldBright} />
-          <Text style={s.fabLabel}>Swap</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[s.fabBtn, s.fabQuiet]} onPress={() => router.push('/home')}>
-          <Ionicons name="cloud-outline" style={s.fabIcon} color={C.cyanPrimary} />
-          <Text style={s.fabLabel}>Cloud</Text>
-        </TouchableOpacity>
-      </View>
-
       {/* ── MY PROFILE MODAL ── */}
       <Modal visible={showUserPhotoModal} transparent animationType="slide"
         onRequestClose={() => setShowUserPhotoModal(false)}>
@@ -1901,23 +1873,6 @@ const s = StyleSheet.create({
   badge: { backgroundColor: C.cyanPrimary, borderRadius: 10, minWidth: 20, height: 20, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
   badgeTxt: { color: C.textOnCyan, fontSize: 11, fontWeight: 'bold' },
   sep: { height: 10, backgroundColor: 'transparent' },
-
-  fab: { position: 'absolute', right: 12, bottom: 20, gap: 8, alignItems: 'center' },
-  fabBtn: {
-    backgroundColor: C.card, borderRadius: 14,
-    paddingVertical: 8, paddingHorizontal: 8,
-    alignItems: 'center', elevation: 3,
-    shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5, shadowOffset: { width: 0, height: 2 },
-    minWidth: 68, width: 68, borderWidth: 1, borderColor: C.borderSubtle,
-  },
-  fabPrimary: { backgroundColor: C.buttonGold, borderColor: C.goldBright },
-  fabSecondary: { backgroundColor: C.buttonCyan, borderColor: C.cyanBright },
-  fabQuiet: { backgroundColor: C.card, borderColor: C.glassGoldBorder },
-  fabIcon: { fontSize: 20 },
-  fabLabel: { fontSize: 10, fontWeight: '700', color: C.textPrimary, marginTop: 2 },
-  fabPrimaryLabel: { color: C.textOnGold },
-  fabSecondaryLabel: { color: C.textOnCyan },
-  fabScriptImg: { width: 28, height: 28, borderRadius: 6 },
 
   // ── Photo to Script Modal ──
   scriptSafe: { flex: 1, backgroundColor: C.bgPrimary },
