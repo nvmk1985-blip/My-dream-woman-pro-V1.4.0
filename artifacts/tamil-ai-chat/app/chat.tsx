@@ -6,12 +6,16 @@ import {
   Image, ScrollView, Dimensions, StatusBar,
   Clipboard, StyleProp, TextStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter, useFocusEffect } from 'expo-router';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { sendMessage, pingServer, sendToLocalGemma, Message, generateImage, generateImageHuggingFace, listCloudinaryImages, listCloudinaryVideos, analyzeFile, uploadUriToCloudinary, uploadToCloudinary, setCloudinaryMeta, getCloudinaryMeta, analyzeAvatarProfile, wasCloudRestoreChecked, markCloudRestoreChecked, getPhotoStyles, getNextCharacterUrl, type PhotoStyleRecord } from '../services/api';
 import MediaImageViewer from '../components/MediaImageViewer';
 import MediaVideoPlayer from '../components/MediaVideoPlayer';
 import { requestPhotoVideoPermissionsAsync } from '../services/media-permissions';
+import { useColors } from '../hooks/useColors';
+import designColors from '../constants/colors';
 
 function cloudVideoThumbnail(videoUrl: string): string {
   try {
@@ -127,6 +131,7 @@ import { ParamsStore } from '../context/params-store';
 import { getSafeExternalHttpUrl, openExternalHttpUrl } from '../utils/external-url';
 
 const { width, height } = Dimensions.get('window');
+const premium = designColors.light;
 
 
 // ── Chat Wallpapers ──────────────────────────────────────────────
@@ -340,7 +345,14 @@ User personalized this character — feel grateful, treat them as special.
   return ctx;
 }
 export default function ChatScreen() {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
+  const wallpaperOptions = WALLPAPERS.map(wallpaper =>
+    wallpaper.id === 'default'
+      ? { ...wallpaper, label: '✨ Premium', bg: colors.surfaceObsidian, dark: true }
+      : wallpaper,
+  );
   const params = ParamsStore.getChatParams();
   const personaId = params?.personaId ?? '';
   const provider = params?.provider ?? 'gemini';
@@ -1920,15 +1932,20 @@ export default function ChatScreen() {
   };
 
   // ── Wallpaper + Bubble style helpers ──────────────────────────
-  const wallpaperBg = (WALLPAPERS.find(w => w.id === chatWallpaper) ?? WALLPAPERS[0]).bg;
-  const isDark      = (WALLPAPERS.find(w => w.id === chatWallpaper) ?? WALLPAPERS[0]).dark;
+  const activeWallpaper = wallpaperOptions.find(w => w.id === chatWallpaper) ?? wallpaperOptions[0];
+  const wallpaperBg = activeWallpaper.bg;
+  const isDark = activeWallpaper.dark;
   const bubbleRadius = bubbleStyle === 'round' ? 22 : 10;
-  const aiBubbleBg   = bubbleStyle === 'modern' ? (isDark ? '#2c2c2e' : '#fff') : (isDark ? '#2c2c2e' : '#fff');
-  const userBubbleBg = bubbleStyle === 'modern' ? (isDark ? '#1a3d2b' : '#d4f5d4') : '#DCF8C6';
-  const msgTextColor = isDark ? '#f0f0f0' : '#111';
+  const aiBubbleBg = isDark
+    ? (bubbleStyle === 'modern' ? colors.surfaceElevated : colors.chatAiBubble)
+    : '#fff';
+  const userBubbleBg = isDark
+    ? (bubbleStyle === 'modern' ? colors.accentDeepViolet : colors.chatUserBubble)
+    : (bubbleStyle === 'modern' ? '#d4f5d4' : '#DCF8C6');
+  const msgTextColor = isDark ? colors.textOnObsidian : '#111';
   const aiMsgTextColor = charFontColor || msgTextColor;
   const aiMsgFontSize = charFontSize > 0 ? charFontSize : 15;
-  const timeTextColor = isDark ? '#888' : '#888';
+  const timeTextColor = isDark ? colors.textOnObsidianMuted : '#888';
 
   // ── Copy helper ────────────────────────────────────────────────
   const copyText = (text: string) => {
@@ -2192,6 +2209,9 @@ export default function ChatScreen() {
   const activeAvatarUri = moodMode === 'presana'
     ? (presanaAvatarUri || avatarUri)
     : (normalAvatarUri || avatarUri);
+  const sendDisabled = !input.trim()
+    || loading
+    || (!!personaId && (!historyLoaded || historyLoadedPersonaIdRef.current !== personaId));
 
   const headerTitle = () => (
     <TouchableOpacity style={styles.headerTitleWrap} onPress={() => { if (activeAvatarUri) { setFullViewImg(activeAvatarUri); } else { pickAvatarPhoto(); } }}>
@@ -2204,7 +2224,10 @@ export default function ChatScreen() {
           : null
       }
       <View>
-        <Text style={styles.headerName}>{persona?.name ?? '...'}</Text>
+        <View style={styles.headerNameLine}>
+          <Text style={styles.headerName}>{persona?.name ?? '...'}</Text>
+          <View style={[styles.onlineDot, !isOnline && styles.offlineDot]} />
+        </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           {/* Mood badge */}
           <TouchableOpacity onPress={toggleMood} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
@@ -2236,35 +2259,62 @@ export default function ChatScreen() {
 
   const headerRight = () => (
     <View style={styles.headerBtns}>
-
-      <TouchableOpacity style={styles.headerBtn} onPress={() => setShowStyleSheet(true)}>
-        <Text style={styles.headerBtnIcon}>🎨</Text>
+      <TouchableOpacity
+        style={styles.headerBtn}
+        onPress={() => setShowStyleSheet(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Chat appearance"
+      >
+        <MaterialCommunityIcons name="palette-outline" size={20} color={colors.accentCyan} />
       </TouchableOpacity>
       {persona && (
-        <TouchableOpacity style={styles.headerBtn} onPress={() => {
-          ParamsStore.setEditPersonaId(persona.id);
-          router.push('/edit-character');
-        }}>
-          <Text style={styles.headerBtnIcon}>✏️</Text>
+        <TouchableOpacity
+          style={styles.headerBtn}
+          onPress={() => {
+            ParamsStore.setEditPersonaId(persona.id);
+            router.push('/edit-character');
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Edit character"
+        >
+          <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.accentChampagneGold} />
         </TouchableOpacity>
       )}
-      <TouchableOpacity style={styles.headerBtn} onPress={clearChat}>
-        <Text style={styles.headerBtnIcon}>🗑️</Text>
+      <TouchableOpacity
+        style={styles.headerBtn}
+        onPress={clearChat}
+        accessibilityRole="button"
+        accessibilityLabel="Clear chat"
+      >
+        <MaterialCommunityIcons name="delete-outline" size={20} color={colors.accentRose} />
       </TouchableOpacity>
     </View>
   );
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: wallpaperBg }]}>
-      <StatusBar backgroundColor="#075E54" barStyle="light-content" />
+      <StatusBar backgroundColor={wallpaperBg} barStyle="light-content" />
+      {chatWallpaper === 'default' && !avatarAsBg && (
+        <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+          <LinearGradient
+            colors={[colors.purpleGlowSoft, colors.purpleGlowFaint, 'transparent']}
+            style={[styles.ambientOrb, styles.ambientPurple]}
+          />
+          <LinearGradient
+            colors={[colors.tealGlowSoft, colors.tealGlowFaint, 'transparent']}
+            style={[styles.ambientOrb, styles.ambientTeal]}
+          />
+        </View>
+      )}
       {avatarAsBg && activeAvatarUri ? (
         <Image source={{ uri: activeAvatarUri }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.12 }} blurRadius={6} resizeMode="cover" />
       ) : null}
       <Stack.Screen options={{
         headerTitle,
         headerRight,
-        headerStyle: { backgroundColor: '#128C7E' },
-        headerTintColor: '#fff',
+        headerStyle: { backgroundColor: colors.surfaceObsidian },
+        headerTintColor: colors.textOnObsidian,
+        headerShadowVisible: false,
       }} />
 
       {/* Offline status banner — status only, settings via ⚙️ gear icon */}
@@ -2288,7 +2338,7 @@ export default function ChatScreen() {
       )}
 
       <KeyboardAvoidingView
-        style={[styles.flex, { backgroundColor: wallpaperBg }]}
+        style={[styles.flex, { backgroundColor: chatWallpaper === 'default' ? 'transparent' : wallpaperBg }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 80}
       >
@@ -2298,14 +2348,14 @@ export default function ChatScreen() {
           keyExtractor={item => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.msgList}
-          style={{ backgroundColor: wallpaperBg }}
+          style={{ backgroundColor: chatWallpaper === 'default' ? 'transparent' : wallpaperBg }}
           onScroll={(e) => { const y = e.nativeEvent.contentOffset.y; const h = e.nativeEvent.contentSize.height; const vh = e.nativeEvent.layoutMeasurement.height; setShowScrollBtn(h - y - vh > 120); }}
           scrollEventThrottle={200}
         />
         {loading && (
           <View style={styles.loadingRow}>
             <View style={styles.loadingBubble}>
-              <ActivityIndicator size="small" color="#075E54" />
+              <ActivityIndicator size="small" color={colors.accentTeal} />
               <Text style={styles.loadingText}>
                 {persona ? `${persona.name} பதில் அளிக்கிறார்...` : 'பதில் தயாராகிறது...'}
               </Text>
@@ -2315,10 +2365,13 @@ export default function ChatScreen() {
 
         {showScrollBtn && (
           <TouchableOpacity
-            style={{ position: 'absolute', right: 12, bottom: 90, zIndex: 99, backgroundColor: '#075E54', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 4, elevation: 8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 4 }}
+            style={[styles.latestButton, { borderColor: colors.borderPrimary }]}
             onPress={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            accessibilityRole="button"
+            accessibilityLabel="Scroll to latest message"
           >
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>⬇ Latest</Text>
+            <MaterialCommunityIcons name="arrow-down" size={16} color={colors.accentCyan} />
+            <Text style={styles.latestButtonText}>Latest</Text>
           </TouchableOpacity>
         )}
         <View style={{ position: 'relative' }}>
@@ -2326,35 +2379,47 @@ export default function ChatScreen() {
           <View style={styles.chatFabs}>
 
             <TouchableOpacity
-              style={[styles.chatFabItem, { backgroundColor: '#E53935' }]}
+              style={styles.chatFabItem}
               onPress={() => setShowGenModal(true)}
               disabled={generatingPhoto}
+              accessibilityRole="button"
+              accessibilityLabel="Choose photo style"
             >
-              {generatingPhoto
-                ? <ActivityIndicator color="#fff" size="small" />
-                : <Text style={styles.cameraIcon}>📷</Text>
-              }
+              <LinearGradient colors={colors.gradients.electricPurple} style={styles.fabGradient}>
+                {generatingPhoto
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Ionicons name="camera-outline" size={23} color="#fff" />
+                }
+              </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.chatFabItem, { backgroundColor: '#00897B' }]}
+              style={styles.chatFabItem}
               onPress={() => persona && router.push(('/ai-girls-cloud?charId=' + persona.id) as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Open character cloud gallery"
             >
-              <Text style={styles.cameraIcon}>☁️</Text>
+              <LinearGradient colors={colors.gradients.tealEmerald} style={styles.fabGradient}>
+                <MaterialCommunityIcons name="cloud-outline" size={23} color="#fff" />
+              </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.chatFabItem, { backgroundColor: '#1565C0' }]}
+              style={styles.chatFabItem}
               onPress={() => handleTranslate(input)}
               disabled={translateLoading}
+              accessibilityRole="button"
+              accessibilityLabel="Translate message"
             >
-              {translateLoading
-                ? <ActivityIndicator color="#fff" size="small" />
-                : <Text style={styles.cameraIcon}>🔤</Text>
-              }
+              <LinearGradient colors={colors.gradients.cyanBlue} style={styles.fabGradient}>
+                {translateLoading
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <MaterialCommunityIcons name="translate" size={22} color="#fff" />
+                }
+              </LinearGradient>
             </TouchableOpacity>
 
           </View>
           {/* Compact input bar — WhatsApp style */}
-          <View style={styles.inputBar}>
+          <View style={[styles.inputBar, { borderTopColor: colors.borderMuted }]}>
             {/* Input wrapper: TextInput + attach icon inside RIGHT */}
             <View style={styles.inputWrapper}>
               <TextInput
@@ -2362,7 +2427,7 @@ export default function ChatScreen() {
                 value={input}
                 onChangeText={setInput}
                 placeholder="தமிழில் தட்டச்சு பண்ணுங்க..."
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.textOnObsidianMuted}
                 multiline
                 maxLength={1000}
               />
@@ -2371,19 +2436,30 @@ export default function ChatScreen() {
                 style={styles.attachBtn}
                 onPress={handleFileAttach}
                 disabled={fileLoading || loading}
+                accessibilityRole="button"
+                accessibilityLabel="Attach a file"
               >
                 {fileLoading
-                  ? <ActivityIndicator color="#999" size="small" />
-                  : <Text style={{ fontSize: 20, color: '#aaa' }}>📎</Text>
+                  ? <ActivityIndicator color={colors.textOnObsidianMuted} size="small" />
+                  : <Ionicons name="attach-outline" size={22} color={colors.textOnObsidianSecondary} />
                 }
               </TouchableOpacity>
             </View>
             <TouchableOpacity
-              style={[styles.sendBtn, (!input.trim() || loading || (!!personaId && (!historyLoaded || historyLoadedPersonaIdRef.current !== personaId))) && styles.sendBtnDisabled]}
+              style={[styles.sendBtn, sendDisabled && styles.sendBtnDisabled]}
               onPress={handleSend}
-              disabled={!input.trim() || loading || (!!personaId && (!historyLoaded || historyLoadedPersonaIdRef.current !== personaId))}
+              disabled={sendDisabled}
+              accessibilityRole="button"
+              accessibilityLabel="Send message"
             >
-              <Text style={styles.sendIcon}>➤</Text>
+              <LinearGradient
+                colors={sendDisabled
+                  ? [colors.surfaceElevated, colors.surfaceLeather]
+                  : colors.gradients.electricPurple}
+                style={styles.sendGradient}
+              >
+                <Ionicons name="send" size={20} color={sendDisabled ? colors.textOnObsidianMuted : '#fff'} />
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -2392,20 +2468,30 @@ export default function ChatScreen() {
       <Modal visible={showGenModal} transparent animationType="slide" onRequestClose={() => setShowGenModal(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowGenModal(false)}>
           <TouchableOpacity activeOpacity={1} style={{ width: '100%' }}>
-            <View style={styles.pickerSheet}>
+            <View style={[styles.pickerSheet, { paddingBottom: Math.max(insets.bottom, 14) }]}>
               <View style={styles.pickerHandle} />
               <View style={styles.pickerHeader}>
-                <Text style={styles.pickerTitle}>Photo Style தேர்வு செய்</Text>
-                <TouchableOpacity onPress={() => setShowGenModal(false)}>
-                  <Text style={styles.pickerClose}>✕</Text>
+                <View style={styles.pickerHeaderText}>
+                  <Text style={styles.pickerTitle}>Photo Style தேர்வு செய்</Text>
+                  <Text style={styles.pickerSubtitle}>Master list: Settings → Photo Styles</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.pickerCloseButton}
+                  onPress={() => setShowGenModal(false)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close photo style selection"
+                >
+                  <Ionicons name="close" size={21} color={colors.textOnObsidianSecondary} />
                 </TouchableOpacity>
               </View>
 
               {/* ── Full-width style list ── */}
-              <ScrollView style={styles.styleListFull} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                <Text style={{ color: '#777', fontSize: 12, marginBottom: 8 }}>
-                  Master list: Settings → Photo Styles
-                </Text>
+              <ScrollView
+                style={styles.styleListFull}
+                contentContainerStyle={styles.styleListContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
                 {PHOTO_STYLES.map((style) => {
                   const isSelected = style.id === selectedStyleId;
                   const isCustom = !style.isBuiltin;
@@ -2418,14 +2504,32 @@ export default function ChatScreen() {
                         setShowGeneratePanel(false);
                         handleShowGalleryInChat(style.id);
                       }}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                      accessibilityLabel={`${style.label}${isSelected ? ', selected' : ''}`}
                     >
+                      {isSelected && (
+                        <LinearGradient
+                          pointerEvents="none"
+                          colors={[colors.purpleHighlight, colors.blueHighlight]}
+                          start={{ x: 0, y: 0.5 }}
+                          end={{ x: 1, y: 0.5 }}
+                          style={StyleSheet.absoluteFillObject}
+                        />
+                      )}
                       <View style={[styles.styleRadio, isSelected && styles.styleRadioSelected]}>
                         {isSelected && <View style={styles.styleRadioDot} />}
+                      </View>
+                      <View style={styles.styleThumbnail}>
+                        {activeAvatarUri
+                          ? <Image source={{ uri: activeAvatarUri }} style={styles.styleThumbnailImage} />
+                          : <MaterialCommunityIcons name="account-circle-outline" size={24} color={colors.textOnObsidianMuted} />
+                        }
                       </View>
                       <Text style={[styles.styleRowFullLabel, isSelected && styles.styleLabelSelected]} numberOfLines={1}>
                         {isCustom ? '★ ' : ''}{style.label}
                       </Text>
-                      <Text style={styles.styleRowArrow}>›</Text>
+                      <Ionicons name="chevron-forward" size={18} color={isSelected ? colors.accentCyan : colors.textOnObsidianMuted} />
                     </TouchableOpacity>
                   );
                 })}
@@ -2702,7 +2806,7 @@ export default function ChatScreen() {
               {/* Wallpaper */}
               <Text style={styles.styleSheetSection}>🖼 Wallpaper</Text>
               <View style={styles.wallpaperGrid}>
-                {WALLPAPERS.map(w => (
+                {wallpaperOptions.map(w => (
                   <TouchableOpacity key={w.id} style={[styles.wallpaperChip, { backgroundColor: w.bg }, chatWallpaper === w.id && styles.wallpaperChipActive]}
                     onPress={() => saveWallpaper(w.id)}>
                     <Text style={styles.wallpaperChipTxt}>{w.label}</Text>
@@ -3088,21 +3192,32 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ECE5DD' },
+  container: { flex: 1, backgroundColor: premium.surfaceObsidian },
   flex: { flex: 1 },
+  ambientOrb: { position: 'absolute', width: 300, height: 300, borderRadius: 150 },
+  ambientPurple: { top: 80, left: -155 },
+  ambientTeal: { right: -175, bottom: 80, transform: [{ rotate: '180deg' }] },
   headerTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerAvatarImg: { width: 58, height: 58, borderRadius: 29, borderWidth: 2, borderColor: '#fff' },
-  headerAvatar: { width: 58, height: 58, borderRadius: 29, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' },
-  headerAvatarText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  headerName: { color: '#fff', fontSize: 18, fontWeight: 'bold', letterSpacing: 0.3 },
-  headerOnline: { color: '#b2dfdb', fontSize: 11 },
-  headerDialectBadge: { color: '#FFD54F', fontSize: 13, fontWeight: '600', marginTop: 2 },
-  headerMoodBadge: { color: '#F48FB1', fontSize: 13, fontWeight: '700', marginTop: 2 },
-  headerMoodNormal: { color: '#A5D6A7' },
-  headerBtns: { flexDirection: 'row', alignItems: 'center', marginRight: 8, gap: 10 },
-  headerBtn: { padding: 6 },
+  headerAvatarImg: { width: 56, height: 56, borderRadius: 28, borderWidth: 2, borderColor: premium.accentPurple },
+  headerAvatar: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: premium.accentPurple },
+  headerAvatarText: { color: premium.textOnObsidian, fontSize: 20, fontWeight: 'bold' },
+  headerNameLine: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  headerName: { color: premium.accentChampagneGold, fontSize: 17, fontWeight: '700', letterSpacing: 0.2 },
+  onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: premium.accentEmerald },
+  offlineDot: { backgroundColor: premium.accentRose },
+  headerOnline: { color: premium.textOnObsidianSecondary, fontSize: 11 },
+  headerDialectBadge: { color: premium.accentChampagneGold, fontSize: 12, fontWeight: '600', marginTop: 2 },
+  headerMoodBadge: { color: premium.accentPurple, fontSize: 12, fontWeight: '700', marginTop: 2 },
+  headerMoodNormal: { color: premium.accentEmerald },
+  headerBtns: { flexDirection: 'row', alignItems: 'center', marginRight: 4, gap: 6 },
+  headerBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: premium.surfaceElevated,
+    borderWidth: 1, borderColor: premium.borderPrimary,
+  },
   headerBtnIcon: { fontSize: 22 },
-  msgList: { padding: 10, paddingBottom: 4 },
+  msgList: { padding: 12, paddingBottom: 8 },
   msgRow: { marginVertical: 3, flexDirection: 'row', alignItems: 'flex-end' },
   userRow: { justifyContent: 'flex-end', gap: 6 },
   aiRow: { justifyContent: 'flex-start', gap: 6 },
@@ -3116,16 +3231,23 @@ const styles = StyleSheet.create({
   userAvatarTxt: { fontSize: 16 },
   imgLoadingWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
   generatedImg: { width: 220, height: 280, borderRadius: 8, marginBottom: 4 },
-  bubble: { maxWidth: '75%', borderRadius: 10, padding: 10, paddingBottom: 6, elevation: 1 },
-  userBubble: { backgroundColor: '#DCF8C6', borderTopRightRadius: 2 },
-  aiBubble: { backgroundColor: '#fff', borderTopLeftRadius: 2 },
+  bubble: {
+    maxWidth: '78%', borderRadius: 18, padding: 12, paddingBottom: 7,
+    borderWidth: 1, borderColor: premium.borderMuted, elevation: 2,
+  },
+  userBubble: { backgroundColor: premium.chatUserBubble, borderTopRightRadius: 4, borderColor: premium.purpleBorderSoft },
+  aiBubble: { backgroundColor: premium.chatAiBubble, borderTopLeftRadius: 4 },
   galleryBubble: { backgroundColor: 'transparent', padding: 0, shadowOpacity: 0 },
-  msgText: { fontSize: 15, lineHeight: 22, color: '#111' },
-  messageLink: { color: '#1565C0', textDecorationLine: 'underline' },
-  timeText: { fontSize: 10, color: '#888', alignSelf: 'flex-end', marginTop: 3 },
+  msgText: { fontSize: 15, lineHeight: 22, color: premium.textOnObsidian },
+  messageLink: { color: premium.accentCyan, textDecorationLine: 'underline' },
+  timeText: { fontSize: 10, color: premium.textOnObsidianMuted, alignSelf: 'flex-end', marginTop: 3 },
   loadingRow: { flexDirection: 'row', padding: 8, paddingLeft: 14 },
-  loadingBubble: { backgroundColor: '#fff', borderRadius: 10, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  loadingText: { color: '#075E54', fontSize: 13 },
+  loadingBubble: {
+    backgroundColor: premium.surfaceElevated, borderRadius: 16, padding: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderWidth: 1, borderColor: premium.borderPrimary,
+  },
+  loadingText: { color: premium.textOnObsidianSecondary, fontSize: 13 },
   chatFabs: {
     position: 'absolute', right: 10, bottom: 74,
     alignItems: 'center', gap: 10, zIndex: 100,
@@ -3133,52 +3255,92 @@ const styles = StyleSheet.create({
   chatFabItem: {
     width: 52, height: 52, borderRadius: 26,
     justifyContent: 'center', alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
+    borderWidth: 1, borderColor: premium.borderPrimary, overflow: 'hidden',
+    elevation: 5, shadowColor: premium.accentPurple, shadowOpacity: 0.3,
+    shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
   },
+  fabGradient: { width: '100%', height: '100%', borderRadius: 26, justifyContent: 'center', alignItems: 'center' },
+  latestButton: {
+    position: 'absolute', right: 12, bottom: 90, zIndex: 99,
+    backgroundColor: premium.surfaceElevated, borderRadius: 18,
+    paddingHorizontal: 13, paddingVertical: 9, flexDirection: 'row',
+    alignItems: 'center', gap: 5, borderWidth: 1,
+    elevation: 8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 4,
+  },
+  latestButtonText: { color: premium.textOnObsidian, fontSize: 13, fontWeight: '700' },
   inputBar: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 10, paddingVertical: 8,
-    backgroundColor: '#F0F0F0', borderTopWidth: 1, borderTopColor: '#ddd', gap: 12,
+    paddingHorizontal: 12, paddingVertical: 9,
+    backgroundColor: premium.surfaceObsidian,
+    borderTopWidth: 1, borderTopColor: premium.borderMuted, gap: 10,
   },
   inputWrapper: {
     flex: 1, flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', borderRadius: 24,
-    shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    backgroundColor: premium.surfaceGlass, borderRadius: 25,
+    borderWidth: 1, borderColor: premium.borderPrimary,
   },
-  input: { flex: 1, paddingLeft: 16, paddingRight: 4, paddingVertical: 12, fontSize: 15, maxHeight: 120, color: '#111', minHeight: 48 },
+  input: { flex: 1, paddingLeft: 16, paddingRight: 4, paddingVertical: 12, fontSize: 15, maxHeight: 120, color: premium.textOnObsidian, minHeight: 48 },
   btnStack: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   promptImageBtn: { backgroundColor: '#E91E8C', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', elevation: 2 },
   promptPickBtn: { backgroundColor: '#7B1FA2', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', elevation: 2 },
   cameraBtn: { backgroundColor: '#E53935', width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', elevation: 3 },
   translateBtn: { backgroundColor: '#1565C0', width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', elevation: 3 },
   cameraIcon: { fontSize: 18 },
-  sendBtn: { backgroundColor: '#25D366', width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', elevation: 4, shadowColor: '#25D366', shadowOpacity: 0.4, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
-  sendBtnDisabled: { backgroundColor: '#a8dfc4' },
-  attachBtn: { width: 42, height: 42, justifyContent: 'center', alignItems: 'center', paddingRight: 12 },
+  sendBtn: {
+    width: 52, height: 52, borderRadius: 26,
+    justifyContent: 'center', alignItems: 'center',
+    overflow: 'hidden', borderWidth: 1, borderColor: premium.accentPurple,
+    elevation: 5, shadowColor: premium.accentPurple, shadowOpacity: 0.35,
+    shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
+  },
+  sendGradient: { width: '100%', height: '100%', borderRadius: 26, justifyContent: 'center', alignItems: 'center' },
+  sendBtnDisabled: { borderColor: premium.borderMuted, elevation: 0, shadowOpacity: 0 },
+  attachBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   sendIcon: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  pickerSheet: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingBottom: 10, maxHeight: '85%' },
-  pickerHandle: { width: 40, height: 4, backgroundColor: '#ddd', borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 6 },
-  pickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  pickerTitle: { fontSize: 17, fontWeight: 'bold', color: '#111' },
-  pickerClose: { fontSize: 20, color: '#888', padding: 4 },
+  modalOverlay: { flex: 1, backgroundColor: premium.overlayDeep, justifyContent: 'flex-end' },
+  pickerSheet: {
+    backgroundColor: premium.surfaceElevated, borderTopLeftRadius: 24,
+    borderTopRightRadius: 24, paddingHorizontal: 18, paddingBottom: 10,
+    maxHeight: '85%', borderWidth: 1, borderColor: premium.borderPrimary,
+  },
+  pickerHandle: { width: 40, height: 4, backgroundColor: premium.borderPrimary, borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 6 },
+  pickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: premium.borderMuted, gap: 12 },
+  pickerHeaderText: { flex: 1, gap: 4 },
+  pickerTitle: { fontSize: 18, fontWeight: '700', color: premium.textOnObsidian },
+  pickerSubtitle: { fontSize: 12, color: premium.textOnObsidianMuted },
+  pickerCloseButton: {
+    width: 40, height: 40, borderRadius: 20, justifyContent: 'center',
+    alignItems: 'center', backgroundColor: premium.surfaceGlass,
+    borderWidth: 1, borderColor: premium.borderMuted,
+  },
+  pickerClose: { fontSize: 20, color: premium.textOnObsidianSecondary, padding: 4 },
   pickerCharInfo: { backgroundColor: '#e8f5e9', borderRadius: 8, padding: 10, marginTop: 10 },
   pickerCharText: { color: '#2e7d32', fontSize: 13 },
-  styleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  styleRowSelected: { backgroundColor: '#f0f4ff' },
-  styleRadio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: '#bbb', marginRight: 8, justifyContent: 'center', alignItems: 'center' },
-  styleRadioSelected: { borderColor: '#6C63FF' },
-  styleRadioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#6C63FF' },
-  styleLabel: { fontSize: 14.5, color: '#333', flex: 1 },
-  styleLabelSelected: { color: '#6C63FF', fontWeight: '600' },
+  styleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: premium.borderMuted },
+  styleRadio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: premium.textOnObsidianMuted, marginRight: 10, justifyContent: 'center', alignItems: 'center' },
+  styleRadioSelected: { borderColor: premium.accentPurple },
+  styleRadioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: premium.accentPurple },
+  styleLabel: { fontSize: 14.5, color: premium.textOnObsidianSecondary, flex: 1 },
 
   // New split layout
-  styleListFull: { maxHeight: 340 },
-  styleRowFull: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 18, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  styleRowFullLabel: { fontSize: 15, color: '#333', flex: 1 },
-  styleRowArrow: { color: '#aaa', fontSize: 18, marginLeft: 6 },
+  styleListFull: { maxHeight: '60%' },
+  styleListContent: { paddingVertical: 10 },
+  styleRowFull: {
+    position: 'relative', overflow: 'hidden',
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: 12,
+    borderWidth: 1, borderColor: premium.borderMuted, borderRadius: 16,
+    backgroundColor: premium.surfaceGlass, marginVertical: 4,
+  },
+  styleRowSelected: { borderColor: premium.accentPurple, backgroundColor: premium.surfaceDeep },
+  styleThumbnail: {
+    width: 44, height: 44, borderRadius: 14, overflow: 'hidden',
+    marginRight: 12, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: premium.surfaceElevated, borderWidth: 1, borderColor: premium.borderPrimary,
+  },
+  styleThumbnailImage: { width: '100%', height: '100%' },
+  styleRowFullLabel: { fontSize: 15, color: premium.textOnObsidianSecondary, flex: 1, fontWeight: '500' },
+  styleLabelSelected: { color: premium.textOnObsidian, fontWeight: '700' },
+  styleRowArrow: { color: premium.textOnObsidianMuted, fontSize: 18, marginLeft: 6 },
 
   // Generate collapsible
   generateSection: { borderTopWidth: 1, borderTopColor: '#eee', marginTop: 4 },

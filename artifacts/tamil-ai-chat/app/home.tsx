@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
   ScrollView, StatusBar, Dimensions, Image, Modal, FlatList, ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -11,11 +12,13 @@ import { uploadUriToCloudinary } from '../services/api';
 import { requestPhotoVideoPermissionsAsync } from '../services/media-permissions';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useColors } from '../hooks/useColors';
+import designColors from '../constants/colors';
 
 const { width } = Dimensions.get('window');
 const COLS = 4;
-const TILE = (width - 32 - (COLS - 1) * 12) / COLS;
 const COVER_H = 150;
+const premium = designColors.light;
 
 const DEFAULT_COVER = require('../assets/images/icon.png');
 const COVER_KEY = 'home_cover_image';
@@ -23,23 +26,24 @@ const CUSTOM_SERVER_KEY = 'custom_server_url';
 const DEFAULT_RENDER_URL = 'https://my-dream-women-v-3-0.onrender.com';
 
 type CategoryIconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-type Category = { key: string; label: string; emoji: string; icon: CategoryIconName; bg: string; route: string };
+type CategoryAccent = 'purple' | 'gold' | 'rose' | 'emerald' | 'cyan' | 'blue' | 'teal';
+type Category = { key: string; label: string; emoji: string; icon: CategoryIconName; accent: CategoryAccent; route: string };
 
 const CATEGORIES: Category[] = [
-  { key: 'pictures',    label: 'Pictures',    emoji: '🖼️',  icon: 'image-multiple-outline', bg: '#4A90D9', route: '/gallery?album=pictures' },
-  { key: 'camera',      label: 'Camera',      emoji: '📷',  icon: 'camera-outline', bg: '#E8821A', route: '/gallery?album=camera' },
-  { key: 'movies',      label: 'Movies',      emoji: '🎬',  icon: 'movie-outline', bg: '#C0392B', route: '/gallery?album=movies' },
-  { key: 'screenshots', label: 'Screenshots', emoji: '📱',  icon: 'cell-phone', bg: '#27AE60', route: '/gallery?album=screenshots' },
-  { key: 'downloads',   label: 'Downloads',   emoji: '⬇️',  icon: 'download-outline', bg: '#8E6BBE', route: '/gallery?album=downloads' },
-  { key: 'documents',   label: 'Documents',   emoji: '📄',  icon: 'file-document-outline', bg: '#3498DB', route: '/gallery?album=documents' },
-  { key: 'music',       label: 'Music',       emoji: '🎵',  icon: 'music-note-outline', bg: '#9B59B6', route: '/gallery?album=music' },
-  { key: 'icons',       label: 'Icons',       emoji: '🎨',  icon: 'palette-outline', bg: '#FF6B35', route: '/gallery?album=icons' },
-  { key: 'ai-girls',    label: 'My AI Girls', emoji: '💕',  icon: 'heart-multiple-outline', bg: '#E91E8C', route: '/ai-girls-cloud' },
-  { key: 'projects',    label: 'Projects',    emoji: '💼',  icon: 'briefcase-outline', bg: '#8E44AD', route: '/gallery?album=projects' },
-  { key: 'notes',       label: 'Notes',       emoji: '📝',  icon: 'note-edit-outline', bg: '#E67E22', route: '/notes' },
-  { key: 'keys',        label: 'Keys',        emoji: '🔑',  icon: 'key-outline', bg: '#F0C040', route: '/keys' },
-  { key: 'cloud',       label: 'Cloud',       emoji: '☁️',  icon: 'cloud-outline', bg: '#1ABC9C', route: '/cloud-storage' },
-  { key: 'videos',      label: 'Videos',      emoji: '🎬',  icon: 'video-outline', bg: '#1565C0', route: '/videos' },
+  { key: 'pictures',    label: 'Pictures',    emoji: '🖼️',  icon: 'image-multiple-outline', accent: 'purple', route: '/gallery?album=pictures' },
+  { key: 'camera',      label: 'Camera',      emoji: '📷',  icon: 'camera-outline', accent: 'gold', route: '/gallery?album=camera' },
+  { key: 'movies',      label: 'Movies',      emoji: '🎬',  icon: 'movie-outline', accent: 'rose', route: '/gallery?album=movies' },
+  { key: 'screenshots', label: 'Screenshots', emoji: '📱',  icon: 'cell-phone', accent: 'emerald', route: '/gallery?album=screenshots' },
+  { key: 'downloads',   label: 'Downloads',   emoji: '⬇️',  icon: 'download-outline', accent: 'purple', route: '/gallery?album=downloads' },
+  { key: 'documents',   label: 'Documents',   emoji: '📄',  icon: 'file-document-outline', accent: 'cyan', route: '/gallery?album=documents' },
+  { key: 'music',       label: 'Music',       emoji: '🎵',  icon: 'music-note-outline', accent: 'blue', route: '/gallery?album=music' },
+  { key: 'icons',       label: 'Icons',       emoji: '🎨',  icon: 'palette-outline', accent: 'rose', route: '/gallery?album=icons' },
+  { key: 'ai-girls',    label: 'My AI Girls', emoji: '💕',  icon: 'heart-multiple-outline', accent: 'rose', route: '/ai-girls-cloud' },
+  { key: 'projects',    label: 'Projects',    emoji: '💼',  icon: 'briefcase-outline', accent: 'purple', route: '/gallery?album=projects' },
+  { key: 'notes',       label: 'Notes',       emoji: '📝',  icon: 'note-edit-outline', accent: 'gold', route: '/notes' },
+  { key: 'keys',        label: 'Keys',        emoji: '🔑',  icon: 'key-outline', accent: 'gold', route: '/keys' },
+  { key: 'cloud',       label: 'Cloud',       emoji: '☁️',  icon: 'cloud-outline', accent: 'teal', route: '/cloud-storage' },
+  { key: 'videos',      label: 'Videos',      emoji: '🎬',  icon: 'video-outline', accent: 'blue', route: '/videos' },
 ];
 
 // Tiles that get a ☁️ cloud button (keys, cloud, projects, notes excluded)
@@ -55,18 +59,39 @@ const GALLERY_CATS = new Set([
 
 type CloudPhoto = { uri: string };
 
-function GlossyCategoryIcon({ name, color, size = TILE - 8 }: { name: CategoryIconName; color: string; size?: number }) {
+function GlossyCategoryIcon({
+  name,
+  color,
+  palette,
+  size = 64,
+}: {
+  name: CategoryIconName;
+  color: string;
+  palette: ReturnType<typeof useColors>;
+  size?: number;
+}) {
   const radius = Math.max(12, Math.round(size * 0.28));
   return (
-    <View style={[s.glossyIcon, { width: size, height: size, borderRadius: radius }]}>
+    <View
+      style={[
+        s.glossyIcon,
+        {
+          width: size,
+          height: size,
+          borderRadius: radius,
+          borderColor: color,
+          shadowColor: color,
+        },
+      ]}
+    >
       <LinearGradient
-        colors={['rgba(255,255,255,0.62)', color, 'rgba(0,0,0,0.16)']}
-        start={{ x: 0.12, y: 0 }}
-        end={{ x: 0.88, y: 1 }}
+        colors={[palette.surfaceElevated, palette.surfaceGlass, palette.surfaceDeep]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={[s.glossyGradient, { borderRadius: radius }]}
       >
         <View pointerEvents="none" style={s.glossyHighlight} />
-        <MaterialCommunityIcons name={name} size={Math.round(size * 0.42)} color="#fff" />
+        <MaterialCommunityIcons name={name} size={Math.round(size * 0.42)} color={color} />
       </LinearGradient>
     </View>
   );
@@ -75,6 +100,19 @@ function GlossyCategoryIcon({ name, color, size = TILE - 8 }: { name: CategoryIc
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useColors();
+  const { width: windowWidth } = useWindowDimensions();
+  const tileWidth = (windowWidth - 32 - (COLS - 1) * 12) / COLS;
+  const tileIconSize = Math.min(tileWidth - 8, 68);
+  const categoryAccentColors: Record<CategoryAccent, string> = {
+    purple: colors.accentPurple,
+    gold: colors.accentRoyalGold,
+    rose: colors.accentRose,
+    emerald: colors.accentEmerald,
+    cyan: colors.accentCyan,
+    blue: colors.accentBlue,
+    teal: colors.accentTeal,
+  };
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [showPickModal, setShowPickModal] = useState(false);
   const [cloudPhotos, setCloudPhotos] = useState<CloudPhoto[]>([]);
@@ -246,7 +284,12 @@ export default function HomeScreen() {
   const cloudSheetCat = CATEGORIES.find(c => c.key === cloudSheet);
 
   return (
-    <SafeAreaView style={s.safe} edges={['left','right','bottom']}>
+    <SafeAreaView style={[s.safe, { backgroundColor: colors.surfaceObsidian }]} edges={['left','right','bottom']}>
+      <LinearGradient
+        pointerEvents="none"
+        colors={[colors.surfaceObsidian, colors.surfaceDeep, colors.surfaceObsidian]}
+        style={StyleSheet.absoluteFillObject}
+      />
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
       {/* Cover image — only show if custom image set, else compact header bar */}
@@ -264,15 +307,25 @@ export default function HomeScreen() {
           <View style={s.coverOverlay} />
           <View style={[s.coverBar, { paddingTop: insets.top + 14 }]}>
             <View style={s.headerLeft}>
-              <GlossyCategoryIcon name="cloud-outline" color="#1ABC9C" size={32} />
+              <GlossyCategoryIcon name="cloud-outline" color={colors.accentTeal} size={36} palette={colors} />
               <Text style={s.headerTitle}>My Dream Women</Text>
             </View>
             <View style={s.coverActions}>
-              <TouchableOpacity style={s.editBtn} onPress={() => setShowPickModal(true)}>
-                <Text style={s.editBtnTxt}>✏️</Text>
+              <TouchableOpacity
+                style={s.editBtn}
+                onPress={() => setShowPickModal(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Change cover image"
+              >
+                <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.accentChampagneGold} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => router.push('/settings')}>
-                <Text style={s.headerGear}>⚙️</Text>
+              <TouchableOpacity
+                style={s.headerAction}
+                onPress={() => router.push('/settings')}
+                accessibilityRole="button"
+                accessibilityLabel="Open settings"
+              >
+                <MaterialCommunityIcons name="cog-outline" size={21} color={colors.accentChampagneGold} />
               </TouchableOpacity>
             </View>
           </View>
@@ -280,15 +333,25 @@ export default function HomeScreen() {
       ) : (
         <View style={[s.compactBar, { paddingTop: insets.top + 12 }]}>
           <View style={s.headerLeft}>
-            <GlossyCategoryIcon name="cloud-outline" color="#1ABC9C" size={32} />
+            <GlossyCategoryIcon name="cloud-outline" color={colors.accentTeal} size={36} palette={colors} />
             <Text style={s.headerTitle}>My Dream Women</Text>
           </View>
           <View style={s.coverActions}>
-            <TouchableOpacity style={s.editBtn} onPress={() => setShowPickModal(true)}>
-              <Text style={s.editBtnTxt}>✏️</Text>
+            <TouchableOpacity
+              style={s.editBtn}
+              onPress={() => setShowPickModal(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Change cover image"
+            >
+              <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.accentChampagneGold} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push('/settings')}>
-              <Text style={s.headerGear}>⚙️</Text>
+            <TouchableOpacity
+              style={s.headerAction}
+              onPress={() => router.push('/settings')}
+              accessibilityRole="button"
+              accessibilityLabel="Open settings"
+            >
+              <MaterialCommunityIcons name="cog-outline" size={21} color={colors.accentChampagneGold} />
             </TouchableOpacity>
           </View>
         </View>
@@ -315,21 +378,30 @@ export default function HomeScreen() {
           {CATEGORIES.map(cat => {
             const hasCloud = CLOUD_ENABLED.has(cat.key);
             return (
-              <View key={cat.key} style={s.tile}>
+              <View key={cat.key} style={[s.tile, { width: tileWidth }]}>
                 <TouchableOpacity
-                  style={s.tileIconWrap}
+                  style={[s.tileIconWrap, { width: tileIconSize, height: tileIconSize }]}
                   onPress={() => { if (cat.route) router.push(cat.route as any); }}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${cat.label}`}
                 >
-                  <GlossyCategoryIcon name={cat.icon} color={cat.bg} />
+                  <GlossyCategoryIcon
+                    name={cat.icon}
+                    color={categoryAccentColors[cat.accent]}
+                    size={tileIconSize}
+                    palette={colors}
+                  />
                   {/* ☁️ cloud badge — only for CLOUD_ENABLED categories */}
                   {hasCloud && (
                     <TouchableOpacity
                       style={s.cloudBadge}
                       onPress={() => openCloudSheet(cat.key)}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Cloud actions for ${cat.label}`}
                     >
-                      <Text style={s.cloudBadgeTxt}>☁️</Text>
+                      <MaterialCommunityIcons name="cloud-upload-outline" size={13} color={colors.accentTeal} />
                     </TouchableOpacity>
                   )}
                 </TouchableOpacity>
@@ -344,7 +416,7 @@ export default function HomeScreen() {
       {cloudUploading && (
         <View style={s.uploadOverlay}>
           <View style={s.uploadCard}>
-            <ActivityIndicator size="large" color="#1ABC9C" />
+            <ActivityIndicator size="large" color={colors.accentTeal} />
             <Text style={s.uploadCardTxt}>Cloud-ல் upload பண்றேன்...</Text>
             <Text style={s.uploadCardCount}>{cloudProgress} / {cloudTotal}</Text>
           </View>
@@ -362,7 +434,7 @@ export default function HomeScreen() {
           <TouchableOpacity activeOpacity={1} style={s.sheet}>
             <View style={s.sheetHandle} />
             <Text style={s.sheetTitle}>
-              {cloudSheetCat?.emoji} {cloudSheetCat?.label} — Cloud ☁️
+              {cloudSheetCat?.label} — Cloud
             </Text>
             <Text style={s.sheetSub}>
               இந்த folder-க்கான Cloud options:
@@ -373,8 +445,8 @@ export default function HomeScreen() {
               style={s.sheetOption}
               onPress={() => cloudSheet && handleCloudUpload(cloudSheet)}
             >
-              <View style={[s.sheetOptionIcon, { backgroundColor: '#1ABC9C' }]}>
-                <Text style={s.sheetOptionEmoji}>📤</Text>
+              <View style={[s.sheetOptionIcon, { borderColor: colors.accentTeal }]}>
+                <MaterialCommunityIcons name="cloud-upload-outline" size={23} color={colors.accentTeal} />
               </View>
               <View style={s.sheetOptionInfo}>
                 <Text style={s.sheetOptionTitle}>Cloud-ல் Upload பண்ணு</Text>
@@ -391,8 +463,8 @@ export default function HomeScreen() {
                 if (route) setTimeout(() => router.push(route as any), 200);
               }}
             >
-              <View style={[s.sheetOptionIcon, { backgroundColor: '#2196F3' }]}>
-                <Text style={s.sheetOptionEmoji}>☁️</Text>
+              <View style={[s.sheetOptionIcon, { borderColor: colors.accentBlue }]}>
+                <MaterialCommunityIcons name="cloud-outline" size={23} color={colors.accentBlue} />
               </View>
               <View style={s.sheetOptionInfo}>
                 <Text style={s.sheetOptionTitle}>Cloud Files பார்</Text>
@@ -489,19 +561,20 @@ export default function HomeScreen() {
 const THUMB = (width - 32) / 3;
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f5f5f5' },
+  safe: { flex: 1, backgroundColor: premium.surfaceObsidian },
   compactBar: {
-    backgroundColor: '#075E54',
+    backgroundColor: premium.surfaceGlass,
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 18, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: premium.borderPrimary,
   },
 
   coverWrap: { width: '100%', height: COVER_H, position: 'relative' },
   coverImg: { width: '100%', height: COVER_H, position: 'absolute', top: 0, left: 0 },
   coverOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.15)',
+    backgroundColor: premium.coverScrim,
   },
   coverBar: {
     position: 'absolute', top: 0, left: 0, right: 0,
@@ -510,146 +583,159 @@ const s = StyleSheet.create({
     paddingHorizontal: 18, paddingTop: 14, paddingBottom: 10,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  headerTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold', textShadowColor: '#000', textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } },
+  headerTitle: { color: premium.accentChampagneGold, fontSize: 21, fontWeight: '700', textShadowColor: '#000', textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } },
   coverActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   editBtn: {
-    backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 20,
-    paddingHorizontal: 10, paddingVertical: 5,
+    backgroundColor: premium.surfaceElevated,
+    borderWidth: 1, borderColor: premium.borderPrimary,
+    width: 42, height: 42, borderRadius: 21,
+    justifyContent: 'center', alignItems: 'center',
   },
-  editBtnTxt: { fontSize: 18 },
-  headerGear: { fontSize: 24, color: '#fff' },
+  headerAction: {
+    backgroundColor: premium.surfaceElevated,
+    borderWidth: 1, borderColor: premium.accentRoyalGold,
+    width: 42, height: 42, borderRadius: 21,
+    justifyContent: 'center', alignItems: 'center',
+  },
 
   scroll: { padding: 16, paddingBottom: 80 },
   sectionLabel: {
-    fontSize: 12, fontWeight: '800', color: '#555',
+    fontSize: 12, fontWeight: '800', color: premium.accentChampagneGold,
     letterSpacing: 1.5, marginBottom: 16, marginLeft: 2,
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
 
   // Tile — now wraps both icon and cloud badge
-  tile: { width: TILE, alignItems: 'center' },
-  tileIconWrap: { width: TILE - 8, position: 'relative', marginBottom: 6 },
+  tile: { alignItems: 'center' },
+  tileIconWrap: { position: 'relative', marginBottom: 7 },
   glossyIcon: {
-    elevation: 4,
-    shadowColor: '#152238', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.18, shadowRadius: 6,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.72)',
+    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.26, shadowRadius: 9,
+    borderWidth: 1.2,
     overflow: 'hidden',
   },
   glossyGradient: { flex: 1, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   glossyHighlight: {
     position: 'absolute', top: -10, left: -8, width: '78%', height: '42%',
-    borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.28)',
+    borderRadius: 999, backgroundColor: premium.glossyHighlight,
     transform: [{ rotate: '-18deg' }],
   },
   tileEmoji: { fontSize: 28 },
-  tileLabel: { fontSize: 11, color: '#333', fontWeight: '600', textAlign: 'center' },
+  tileLabel: { fontSize: 11, color: premium.textOnObsidianSecondary, fontWeight: '600', textAlign: 'center' },
 
   // ☁️ cloud badge button
   cloudBadge: {
     position: 'absolute', top: -4, right: -4,
-    width: 22, height: 22,
-    backgroundColor: '#fff',
-    borderRadius: 11,
+    width: 24, height: 24,
+    backgroundColor: premium.surfaceDeep,
+    borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#1ABC9C',
+    borderColor: premium.accentTeal,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#1ABC9C',
+    elevation: 4,
+    shadowColor: premium.accentTeal,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.4,
-    shadowRadius: 3,
+    shadowOpacity: 0.32,
+    shadowRadius: 5,
   },
   cloudBadgeTxt: { fontSize: 10 },
 
   // Cloud upload overlay
   uploadOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: premium.overlayDeep,
     justifyContent: 'center', alignItems: 'center', zIndex: 99,
   },
   uploadCard: {
-    backgroundColor: '#fff', borderRadius: 20,
+    backgroundColor: premium.surfaceElevated, borderRadius: 20,
     paddingVertical: 32, paddingHorizontal: 40,
-    alignItems: 'center', gap: 12,
+    alignItems: 'center', gap: 12, borderWidth: 1, borderColor: premium.borderPrimary,
   },
-  uploadCardTxt: { fontSize: 15, fontWeight: '700', color: '#111' },
-  uploadCardCount: { fontSize: 22, fontWeight: '800', color: '#1ABC9C' },
+  uploadCardTxt: { fontSize: 15, fontWeight: '700', color: premium.textOnObsidian },
+  uploadCardCount: { fontSize: 22, fontWeight: '800', color: premium.accentTeal },
 
   // ── Cloud sheet ──────────────────────────────────────────────────
   sheetOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
+    flex: 1, backgroundColor: premium.overlayDeep, justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: premium.surfaceElevated, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     paddingTop: 12, paddingBottom: 36, paddingHorizontal: 24,
+    borderTopWidth: 1, borderColor: premium.borderPrimary,
   },
   sheetHandle: {
-    width: 40, height: 4, backgroundColor: '#ddd', borderRadius: 2,
+    width: 40, height: 4, backgroundColor: premium.borderPrimary, borderRadius: 2,
     alignSelf: 'center', marginBottom: 20,
   },
-  sheetTitle: { fontSize: 18, fontWeight: '800', color: '#111', marginBottom: 4 },
-  sheetSub: { fontSize: 13, color: '#777', marginBottom: 20 },
+  sheetTitle: { fontSize: 18, fontWeight: '800', color: premium.textOnObsidian, marginBottom: 4 },
+  sheetSub: { fontSize: 13, color: premium.textOnObsidianMuted, marginBottom: 20 },
 
   sheetOption: {
     flexDirection: 'row', alignItems: 'center', gap: 16,
-    borderWidth: 1.5, borderColor: '#e8e8e8',
-    borderRadius: 14, padding: 16, marginBottom: 12,
+    borderWidth: 1, borderColor: premium.borderMuted,
+    backgroundColor: premium.surfaceGlass,
+    borderRadius: 16, padding: 16, marginBottom: 12,
   },
   sheetOptionIcon: {
     width: 48, height: 48, borderRadius: 24,
     justifyContent: 'center', alignItems: 'center',
+    backgroundColor: premium.surfaceDeep, borderWidth: 1,
   },
   sheetOptionEmoji: { fontSize: 22 },
   sheetOptionInfo: { flex: 1 },
-  sheetOptionTitle: { fontSize: 15, fontWeight: '700', color: '#111' },
-  sheetOptionSub: { fontSize: 12, color: '#777', marginTop: 2, lineHeight: 17 },
+  sheetOptionTitle: { fontSize: 15, fontWeight: '700', color: premium.textOnObsidian },
+  sheetOptionSub: { fontSize: 12, color: premium.textOnObsidianMuted, marginTop: 2, lineHeight: 17 },
 
   sheetCancel: {
-    marginTop: 4, backgroundColor: '#f5f5f5',
+    marginTop: 4, backgroundColor: premium.surfaceLeather,
     borderRadius: 14, paddingVertical: 14, alignItems: 'center',
+    borderWidth: 1, borderColor: premium.borderMuted,
   },
-  sheetCancelTxt: { color: '#555', fontWeight: '700', fontSize: 15 },
+  sheetCancelTxt: { color: premium.textOnObsidianSecondary, fontWeight: '700', fontSize: 15 },
 
   // Pick modal
   pickOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.55)',
+    flex: 1, backgroundColor: premium.overlayDeep,
     justifyContent: 'flex-end',
   },
   pickBox: {
-    backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: premium.surfaceElevated, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: 24, paddingBottom: 36,
+    borderTopWidth: 1, borderColor: premium.borderPrimary,
   },
-  pickTitle: { fontSize: 18, fontWeight: 'bold', color: '#111', marginBottom: 4 },
-  pickSub: { fontSize: 13, color: '#777', marginBottom: 20 },
+  pickTitle: { fontSize: 18, fontWeight: 'bold', color: premium.textOnObsidian, marginBottom: 4 },
+  pickSub: { fontSize: 13, color: premium.textOnObsidianMuted, marginBottom: 20 },
   pickOption: {
     flexDirection: 'row', alignItems: 'center', gap: 16,
-    borderWidth: 1.5, borderColor: '#e8e8e8',
+    borderWidth: 1, borderColor: premium.borderMuted,
+    backgroundColor: premium.surfaceGlass,
     borderRadius: 14, padding: 16, marginBottom: 12,
   },
   pickOptionIcon: { fontSize: 32 },
-  pickOptionTitle: { fontSize: 15, fontWeight: '700', color: '#111' },
-  pickOptionSub: { fontSize: 12, color: '#777', marginTop: 2 },
+  pickOptionTitle: { fontSize: 15, fontWeight: '700', color: premium.textOnObsidian },
+  pickOptionSub: { fontSize: 12, color: premium.textOnObsidianMuted, marginTop: 2 },
   pickCancel: {
-    marginTop: 4, backgroundColor: '#f5f5f5',
+    marginTop: 4, backgroundColor: premium.surfaceLeather,
     borderRadius: 14, paddingVertical: 14, alignItems: 'center',
+    borderWidth: 1, borderColor: premium.borderMuted,
   },
-  pickCancelTxt: { color: '#555', fontWeight: '700', fontSize: 15 },
+  pickCancelTxt: { color: premium.textOnObsidianSecondary, fontWeight: '700', fontSize: 15 },
 
   cloudPickerWrap: {
-    flex: 1, marginTop: 60, backgroundColor: '#fff',
+    flex: 1, marginTop: 60, backgroundColor: premium.surfaceObsidian,
     borderTopLeftRadius: 24, borderTopRightRadius: 24,
   },
   cloudPickerHeader: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20, borderBottomWidth: 1, borderBottomColor: '#eee',
+    padding: 20, borderBottomWidth: 1, borderBottomColor: premium.borderMuted,
   },
-  cloudPickerTitle: { fontSize: 17, fontWeight: 'bold', color: '#111' },
-  cloudPickerClose: { fontSize: 22, color: '#555', paddingHorizontal: 8 },
+  cloudPickerTitle: { fontSize: 17, fontWeight: 'bold', color: premium.textOnObsidian },
+  cloudPickerClose: { fontSize: 22, color: premium.textOnObsidianSecondary, paddingHorizontal: 8 },
   cloudEmpty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-  cloudEmptyTxt: { fontSize: 15, color: '#888', textAlign: 'center', lineHeight: 24 },
+  cloudEmptyTxt: { fontSize: 15, color: premium.textOnObsidianMuted, textAlign: 'center', lineHeight: 24 },
   cloudThumb: {
     width: THUMB, height: THUMB, margin: 2, borderRadius: 8, overflow: 'hidden',
   },
