@@ -1,6 +1,6 @@
 # Step 4b — Character management UI
 
-**Status:** Code complete; [PR #1](https://github.com/nvmk1985-blip/My-dream-woman-pro-V1.4.0/pull/1) மூலம் `main`-க்கு 2026-10-18 அன்று merge செய்யப்பட்டது (original branch: `feature/black-leather-royal-gold`).  
+**Status:** Code complete; [PR #1](https://github.com/nvmk1985-blip/My-dream-woman-pro-V1.4.0/pull/1) மூலம் `main`-க்கு 2026-10-18 அன்று merge செய்யப்பட்டது (original branch: `feature/black-leather-royal-gold`).<br>
 **Implementation commit:** `a8725c1e961093a1e775e12d2877901df734a4a3`  
 **Date:** 2026-10-18
 

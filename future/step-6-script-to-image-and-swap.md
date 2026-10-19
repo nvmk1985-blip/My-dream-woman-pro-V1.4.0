@@ -1,6 +1,6 @@
 # Step 6 — Script-to-Image and Face Swap UI
 
-**Status:** Code complete; [PR #1](https://github.com/nvmk1985-blip/My-dream-woman-pro-V1.4.0/pull/1) மூலம் `main`-க்கு 2026-10-18 அன்று merge செய்யப்பட்டது (original branch: `feature/black-leather-royal-gold`).  
+**Status:** Code complete; [PR #1](https://github.com/nvmk1985-blip/My-dream-woman-pro-V1.4.0/pull/1) மூலம் `main`-க்கு 2026-10-18 அன்று merge செய்யப்பட்டது (original branch: `feature/black-leather-royal-gold`).<br>
 **Implementation commit:** `78642ac1df1c635945d16cf7aa1ba77c21937edc`  
 **Parent commit:** `e68a65dda1f17b2d52f7d10a45c2131022a8a85e`  
 **Tree:** `ea98682206e4420501deb2149837b2999374b70b`  
