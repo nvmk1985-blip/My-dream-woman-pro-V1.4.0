@@ -1,7 +1,7 @@
 # Step 2 — Shared design-token foundation
 
 ## நிலை
-- Step 2 முடிந்தது; மாற்றங்கள் `feature/black-leather-royal-gold` branch-ல் உள்ளன, `main`-க்கு merge செய்யப்படவில்லை.
+- Step 2 முடிந்தது; மாற்றங்கள் `feature/black-leather-royal-gold` branch-இல் உருவாக்கப்பட்டு [PR #1](https://github.com/nvmk1985-blip/My-dream-woman-pro-V1.4.0/pull/1) மூலம் `main`-க்கு 2026-10-18 அன்று merge செய்யப்பட்டன.
 - Theme-token code commit: `3e69dd3855e1576e7a5bdbfab1f1bd53f458af41`.
 - Screen-by-screen redesign தொடங்கவில்லை. அடுத்த code phase-க்கு user approval தேவை.
 

@@ -1,6 +1,6 @@
 # Step 5 — Cloudinary, Gallery, Image-to-Script UI
 
-**Status:** Code complete on `feature/black-leather-royal-gold`
+**Status:** Code complete; [PR #1](https://github.com/nvmk1985-blip/My-dream-woman-pro-V1.4.0/pull/1) மூலம் `main`-க்கு 2026-10-18 அன்று merge செய்யப்பட்டது (original branch: `feature/black-leather-royal-gold`).
 
 **Implementation commit:** `80be37c30bf8ecd4730e7334bc0d6fd95d187028`
 
