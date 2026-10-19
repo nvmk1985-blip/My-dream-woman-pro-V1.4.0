@@ -62,7 +62,15 @@ jobs:
       - name: Calculate 1.4.0 app build number
         id: app_build
         run: |
-          BUILD_NUMBER=$(( ${{ github.run_number }} - 2 ))
+          git fetch --tags --force
+          LATEST_BUILD_NUMBER=$(
+            git tag --list 'v1.4.0-*' \
+              | sed -nE 's/^v1\.4\.0-([0-9]+)$/\1/p' \
+              | sort -n \
+              | tail -1
+          )
+          LATEST_BUILD_NUMBER=${LATEST_BUILD_NUMBER:-0}
+          BUILD_NUMBER=$((LATEST_BUILD_NUMBER + 1))
           if [ "$BUILD_NUMBER" -lt 1 ]; then
             echo "::error::App build number must start at 1"
             exit 1
