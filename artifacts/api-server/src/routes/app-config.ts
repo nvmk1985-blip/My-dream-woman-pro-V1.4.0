@@ -1,31 +1,45 @@
 import { Router } from "express";
+import { getOpenAIKeys, getOpenRouterKeys, getServerKeys } from "./ai-provider";
 
 const router = Router();
 
+const isConfigured = (...names: string[]) =>
+  names.some((name) => Boolean(process.env[name]?.trim()));
+
+const countUniqueConfigured = (...names: string[]) =>
+  new Set(
+    names
+      .map((name) => process.env[name]?.trim())
+      .filter((value): value is string => Boolean(value)),
+  ).size;
+
 router.get("/app-config", (_req, res) => {
-  const baseGemini =
-    process.env["GEMINI_API_KEY"] ||
-    process.env["AI_INTEGRATIONS_GEMINI_API_KEY"] ||
-    "";
-  const geminiKeys: string[] = [];
-  for (let i = 1; i <= 13; i++) {
-    const slotKey = process.env[`GEMINI_API_KEY_${i}`] || "";
-    geminiKeys.push(slotKey || (i === 1 ? baseGemini : ""));
-  }
-  if (!geminiKeys[0] && baseGemini) geminiKeys[0] = baseGemini;
+  const multimediaGeminiNames = [
+    "GEMINI_API_KEY",
+    "AI_INTEGRATIONS_GEMINI_API_KEY",
+    "GEMINI_API_KEY_CLOUDNARY",
+    ...Array.from({ length: 5 }, (_, i) => "GEMINI_API_KEY_" + (i + 1)),
+  ];
 
   res.json({
-    githubToken: process.env["GITHUB_KEY"] || null,
-    hfToken: process.env["HUGGING_FACE_KEY"] || null,
-    openrouterKey: process.env["OPENROUTER_API_KEY"] || process.env["OPEN_ROTTER_API_KEY"] || null,
-    groqKey: process.env["GROQ_KEY"] || null,
-    cloudinary: {
-      cloudName:  process.env["CLOUDINARY_CLOUD_NAME"] || null,
-      apiKey:     process.env["API_KEY"] || null,
-      apiSecret:  process.env["API_SECRET"] || null,
+    chat: {
+      geminiKeyCount: getServerKeys().length,
+      openRouterKeyCount: getOpenRouterKeys().length,
+      openAIKeyCount: getOpenAIKeys().length,
     },
-    geminiKeys,
-    defaultServerUrl: "https://my-dream-women-v-3-0.onrender.com",
+    multimedia: {
+      geminiKeyCount: countUniqueConfigured(...multimediaGeminiNames),
+      openRouterConfigured: isConfigured("OPEN_ROTTER_API_KEY", "OPEN_ROUTER_API_KEY", "OPENROUTER_API_KEY"),
+      cloudinaryConfigured:
+        isConfigured("CLOUDNARY_USER_NAME", "CLOUDINARY_CLOUD_NAME") &&
+        isConfigured("API_KEY", "CLOUDINARY_API_KEY") &&
+        isConfigured("API_SECRET", "CLOUDINARY_API_SECRET"),
+    },
+    integrations: {
+      githubConfigured: isConfigured("GITHUB_KEY"),
+      huggingFaceConfigured: isConfigured("HUGGING_FACE_KEY"),
+      groqConfigured: isConfigured("GROQ_KEY", "GROQ_API_KEY", "Groq_key", "groq_key"),
+    },
   });
 });
 
