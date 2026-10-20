@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import themeTokens from '../constants/colors';
 import { useColors } from '../hooks/useColors';
+import { API_BASE_URL } from '../services/api';
 
 const C = themeTokens.dark;
 const DEVICE_KEY_STORAGE = 'device_key';
@@ -29,8 +30,6 @@ interface ApiKeyEntry {
   expanded: boolean;
   status: KeyStatus;
 }
-
-const DEFAULT_SERVER = 'https://my-dream-women-v-3-0.onrender.com';
 
 const DEFAULT_KEYS: Omit<ApiKeyEntry, 'value' | 'expanded' | 'status'>[] = [
   { id: 'github',     label: 'GitHub Token', site: 'github.com',        enabled: false },
@@ -173,7 +172,6 @@ export default function KeysScreen() {
   useEffect(() => {
     loadKeys().then(({ parsed, enabled }) => {
       autoCheckAll(parsed, enabled);
-      loadServerDefaults(true);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -458,49 +456,33 @@ export default function KeysScreen() {
     Alert.alert('Cloud Save', 'Keys cloud-ல் save ✅');
   };
 
-  const loadServerDefaults = async (silent = false) => {
+  const checkServerKeyStatus = async () => {
+    if (!API_BASE_URL) {
+      Alert.alert('Server status', 'API URL is not configured for this build.');
+      return;
+    }
     try {
-      const res = await fetch(`${DEFAULT_SERVER}/api/app-config`);
-      if (!res.ok) return;
-      const cfg = await res.json() as any;
-      const saved = await AsyncStorage.getItem(KEYS_STORAGE);
-      const parsed = saved ? JSON.parse(saved) : {};
-      const enabledRaw = await AsyncStorage.getItem(KEYS_ENABLED_STORAGE);
-      const enabledMap = enabledRaw ? JSON.parse(enabledRaw) : {};
-      let changed = false;
-
-      // Server values always win — Render-ல் set ஆனது correct value
-      const maybeSet = (key: string, val: string | null | undefined) => {
-        if (val) { parsed[key] = val; enabledMap[key] = true; changed = true; }
+      const res = await fetch(API_BASE_URL + '/api/app-config');
+      if (!res.ok) {
+        Alert.alert('Server status', 'Server responded with HTTP ' + res.status + '.');
+        return;
+      }
+      const status = await res.json() as {
+        chat?: { geminiKeyCount?: number; openRouterKeyCount?: number; openAIKeyCount?: number };
+        multimedia?: { geminiKeyCount?: number; openRouterConfigured?: boolean; cloudinaryConfigured?: boolean };
       };
-
-      maybeSet('github', cfg.githubToken);
-      maybeSet('hf', cfg.hfToken);
-      maybeSet('openrouter', cfg.openrouterKey);
-      maybeSet('groq', cfg.groqKey);
-      if (cfg.cloudinary?.cloudName) maybeSet('cloudinary', cfg.cloudinary.cloudName);
-      if (cfg.cloudinary?.apiKey) maybeSet('cloudinary_api_key', cfg.cloudinary.apiKey);
-      if (cfg.cloudinary?.apiSecret) maybeSet('cloudinary_api_secret', cfg.cloudinary.apiSecret);
-      if (Array.isArray(cfg.geminiKeys)) {
-        cfg.geminiKeys.forEach((val: string, i: number) => {
-          maybeSet(`gemini_${i + 1}`, val);
-        });
-        // Fill multimedia_gemini_1..5 from Render Multimedia group (GEMINI_API_KEY_1-5)
-        for (let i = 0; i < 5 && i < cfg.geminiKeys.length; i++) {
-          const val = cfg.geminiKeys[i];
-          if (val) { parsed[`multimedia_gemini_${i + 1}`] = val; enabledMap[`multimedia_gemini_${i + 1}`] = true; changed = true; }
-        }
-      }
-
-      if (changed) {
-        await AsyncStorage.setItem(KEYS_STORAGE, JSON.stringify(parsed));
-        await AsyncStorage.setItem(KEYS_ENABLED_STORAGE, JSON.stringify(enabledMap));
-        await loadKeys();
-        if (!silent) Alert.alert('✅ Server Defaults', 'Server-ல் இருந்த keys auto-fill ✅');
-      } else if (!silent) {
-        Alert.alert('ℹ️ No Change', 'Server defaults already applied or no server keys found.');
-      }
-    } catch { if (!silent) Alert.alert('Error', 'Server connect ஆகல'); }
+      const message =
+        'Chat — Gemini: ' + (status.chat?.geminiKeyCount ?? 0) +
+        ', OpenRouter: ' + (status.chat?.openRouterKeyCount ?? 0) +
+        ', OpenAI: ' + (status.chat?.openAIKeyCount ?? 0) +
+        '\nMedia — Gemini: ' + (status.multimedia?.geminiKeyCount ?? 0) +
+        ', OpenRouter: ' + (status.multimedia?.openRouterConfigured ? 'configured' : 'missing') +
+        ', Cloudinary: ' + (status.multimedia?.cloudinaryConfigured ? 'configured' : 'missing') +
+        '\n\nServer keys stay on the backend; they are not copied to this device.';
+      Alert.alert('Server Key Status', message);
+    } catch {
+      Alert.alert('Server status', 'Could not reach the configured API server.');
+    }
   };
 
   return (
@@ -561,8 +543,8 @@ export default function KeysScreen() {
             </TouchableOpacity>
           </View>
           <View style={s.cloudBtns}>
-            <TouchableOpacity style={s.cloudLoadBtn} onPress={() => loadServerDefaults(false)}>
-              <View style={s.buttonLabelRow}><Ionicons name="cloud-download-outline" size={16} color={colors.textOnCyan} /><Text style={s.cloudBtnTxt}>Load Server Defaults</Text></View>
+            <TouchableOpacity style={s.cloudLoadBtn} onPress={checkServerKeyStatus}>
+              <View style={s.buttonLabelRow}><Ionicons name="cloud-outline" size={16} color={colors.textOnCyan} /><Text style={s.cloudBtnTxt}>Check Server Status</Text></View>
             </TouchableOpacity>
             <TouchableOpacity style={s.cloudSaveBtn} onPress={cloudSave} disabled={syncing}>
               {syncing ? <ActivityIndicator color={colors.textPrimary} /> : <View style={s.buttonLabelRow}><Ionicons name="cloud-upload-outline" size={16} color={colors.textOnGold} /><Text style={s.cloudBtnTxt}>Cloud Save</Text></View>}
