@@ -8,7 +8,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Stack, useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { uploadUriToCloudinary, getPhotoStyles, createPhotoStyle, deletePhotoStyle, type PhotoStyleRecord, type GlobalStyleEntry } from '../services/api';
+import { API_BASE_URL, uploadUriToCloudinary, getPhotoStyles, createPhotoStyle, deletePhotoStyle, type PhotoStyleRecord, type GlobalStyleEntry } from '../services/api';
 import { ALL_PERSONAS } from '../constants/personas';
 import { Ionicons } from '@expo/vector-icons';
 import themeTokens from '../constants/colors';
@@ -23,7 +23,8 @@ const WORKFLOW_FILE = 'build-apk.yml';
 const KEYS_STORAGE = 'api_keys_store';
 
 const CUSTOM_SERVER_KEY = 'custom_server_url';
-const DEFAULT_SERVER = 'https://my-dream-women-v-3-0.onrender.com';
+const DEFAULT_SERVER = API_BASE_URL;
+const LEGACY_DEFAULT_SERVER = 'https://my-dream-women-v-3-0.onrender.com';
 
 type BuildStatus = 'idle' | 'triggering' | 'queued' | 'in_progress' | 'success' | 'failure';
 
@@ -82,7 +83,13 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     // Load saved custom server URL
-    AsyncStorage.getItem(CUSTOM_SERVER_KEY).then(v => { if (v && v !== DEFAULT_SERVER) setCustomServerUrl(v); }).catch(() => {});
+    AsyncStorage.getItem(CUSTOM_SERVER_KEY).then(v => {
+      if (v === LEGACY_DEFAULT_SERVER) {
+        AsyncStorage.setItem(CUSTOM_SERVER_KEY, DEFAULT_SERVER).catch(() => {});
+      } else if (v && v !== DEFAULT_SERVER) {
+        setCustomServerUrl(v);
+      }
+    }).catch(() => {});
     // Auto-fetch latest APK URL (no auth needed — public repo)
     fetchLatestApkPublic();
     // Check if HuggingFace token is already saved
@@ -92,8 +99,6 @@ export default function SettingsScreen() {
         if (parsed['huggingface']) setHfSaved(true);
       }
     }).catch(() => {});
-    // Auto-load server defaults (GitHub token + HuggingFace token)
-    loadServerDefaults();
     loadPhotoStyles();
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
@@ -108,22 +113,7 @@ export default function SettingsScreen() {
     } catch { return null; }
   };
 
-  // Server defaults-ஐ auto-load பண்றோம் — GitHub token + HuggingFace token
-  const loadServerDefaults = async () => {
-    try {
-      const res = await fetch(`${DEFAULT_SERVER}/api/app-config`);
-      if (!res.ok) return;
-      const cfg = await res.json() as { githubToken?: string | null; hfToken?: string | null };
-      const raw = await AsyncStorage.getItem(KEYS_STORAGE).catch(() => null);
-      const parsed: Record<string, string> = raw ? JSON.parse(raw) : {};
-      let changed = false;
-      if (cfg.githubToken && !parsed['github']) { parsed['github'] = cfg.githubToken; changed = true; }
-      if (cfg.hfToken && !parsed['huggingface']) { parsed['huggingface'] = cfg.hfToken; setHfSaved(true); changed = true; }
-      if (changed) await AsyncStorage.setItem(KEYS_STORAGE, JSON.stringify(parsed));
-    } catch {
-      // Server offline — skip defaults
-    }
-  };
+
 
   // Latest APK URL — no auth needed (public repo releases)
   const fetchLatestApkPublic = async () => {
