@@ -926,7 +926,7 @@ Then write these prompts:
     setServerStatus('unknown');
     try {
       const savedUrl = await AsyncStorage.getItem('custom_server_url').catch(() => null);
-      const serverUrl = savedUrl || 'https://my-dream-women-v-3-0.onrender.com';
+      const serverUrl = savedUrl || 'https://my-dream-woman-pro-v1-4-0.onrender.com';
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 35000);
       const res = await fetch(`${serverUrl}/api/healthz`, { signal: controller.signal });

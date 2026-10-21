@@ -22,7 +22,7 @@ const HERO_HEIGHT = Math.min(Math.round(SCREEN_WIDTH * 0.88), 340);
 const TILE_GAP = 10;
 const TILE_WIDTH = (SCREEN_WIDTH - 32 - TILE_GAP * 2) / 3;
 const TILE_HEIGHT = Math.max(120, Math.min(138, TILE_WIDTH * 1.25));
-const DEFAULT_SERVER_URL = 'https://my-dream-women-v-3-0.onrender.com';
+const DEFAULT_SERVER_URL = 'https://my-dream-woman-pro-v1-4-0.onrender.com';
 
 type HomeAction = 'image' | 'group' | 'script' | 'swap' | 'cloud' | 'disabled';
 type HomeTile = {
