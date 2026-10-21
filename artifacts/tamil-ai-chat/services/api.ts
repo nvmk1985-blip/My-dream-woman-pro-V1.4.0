@@ -1,6 +1,10 @@
 // APK-ல் absolute URL வேணும் — EXPO_PUBLIC_API_URL set பண்ணுங்க
 // Web/dev-ல் empty string → relative URL (proxy works automatically)
-const REPLIT_API: string = (process.env['EXPO_PUBLIC_API_URL'] ?? '').replace(/\/$/, '');
+export const API_BASE_URL: string = (
+  process.env['EXPO_PUBLIC_API_URL'] ?? 'https://my-dream-woman-pro-v1-4-0.onrender.com'
+).replace(/\/$/, '');
+
+const REPLIT_API = API_BASE_URL;
 
 // Local Gemma server (OpenAI-compatible format — PocketPal AI, Jan, llama.cpp etc.)
 export async function sendToLocalGemma(

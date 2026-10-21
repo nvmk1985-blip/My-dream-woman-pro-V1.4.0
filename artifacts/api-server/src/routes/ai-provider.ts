@@ -42,7 +42,7 @@ export class ServerAiProviderError extends Error {
   }
 }
 
-function getServerKeys(): string[] {
+export function getServerKeys(): string[] {
   const candidates: (string | undefined)[] = [
     process.env["AI_INTEGRATIONS_GEMINI_API_KEY"],
     process.env["GEMINI_API_KEY"],
