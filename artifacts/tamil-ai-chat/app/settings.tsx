@@ -23,7 +23,7 @@ const WORKFLOW_FILE = 'build-apk.yml';
 const KEYS_STORAGE = 'api_keys_store';
 
 const CUSTOM_SERVER_KEY = 'custom_server_url';
-const DEFAULT_SERVER = 'https://my-dream-women-v-3-0.onrender.com';
+const DEFAULT_SERVER = 'https://my-dream-woman-pro-v1-4-0.onrender.com';
 
 type BuildStatus = 'idle' | 'triggering' | 'queued' | 'in_progress' | 'success' | 'failure';
 
@@ -638,7 +638,7 @@ export default function SettingsScreen() {
             ['Cloudinary Mail', 'Nvmmmnv80@gmail.com'],
             ['AI Model', 'Gemini 2.5 Flash'],
             ['Characters', '10 Tamil AI'],
-            ['Server', 'my-dream-women-v-3-0.onrender.com'],
+            ['Server', 'my-dream-woman-pro-v1-4-0.onrender.com'],
           ].map(([label, val]) => (
             <View key={label} style={s.infoRow}>
               <Text style={s.infoLabel}>{label}</Text>

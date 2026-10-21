@@ -12,7 +12,7 @@ const upload = multer({
 const DEFAULT_DRIVE_FOLDER_ID = "1ikAYcKgLyJlm12EEX-gBg7KqiVsA9kbo";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
 const DEFAULT_OAUTH_REDIRECT_URI =
-  "https://my-dream-women-v-3-0.onrender.com/api/google-drive/oauth/callback";
+  "https://my-dream-woman-pro-v1-4-0.onrender.com/api/google-drive/oauth/callback";
 const DRIVE_READ_TIMEOUT_MS = 45_000;
 const DRIVE_UPLOAD_TIMEOUT_MS = 180_000;
 
