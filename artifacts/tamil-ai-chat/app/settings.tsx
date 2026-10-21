@@ -628,7 +628,7 @@ export default function SettingsScreen() {
             ['Cloudinary Mail', 'Nvmmmnv80@gmail.com'],
             ['AI Model', 'Gemini 2.5 Flash'],
             ['Characters', '10 Tamil AI'],
-            ['Server', 'my-dream-women-v-3-0.onrender.com'],
+            ['Server', 'my-dream-woman-pro-v1-4-0.onrender.com'],
           ].map(([label, val]) => (
             <View key={label} style={s.infoRow}>
               <Text style={s.infoLabel}>{label}</Text>
