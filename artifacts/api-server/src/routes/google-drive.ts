@@ -35,11 +35,54 @@ function getDriveFolderId() {
 }
 
 function getOAuthClient() {
-  const clientId = process.env["GOOGLE_DRIVE_CLIENT_ID"];
-  const clientSecret = process.env["GOOGLE_DRIVE_CLIENT_SECRET"];
+  const rawClientJson = process.env["GOOGLE_DRIVE_CLIENT_JSON"]?.trim();
+  let jsonClientId: string | undefined;
+  let jsonClientSecret: string | undefined;
+
+  if (rawClientJson) {
+    let parsedClientJson: unknown;
+    try {
+      parsedClientJson = JSON.parse(rawClientJson);
+    } catch {
+      throw new Error("GOOGLE_DRIVE_CLIENT_JSON must contain valid OAuth client JSON.");
+    }
+
+    if (
+      !parsedClientJson ||
+      typeof parsedClientJson !== "object" ||
+      Array.isArray(parsedClientJson)
+    ) {
+      throw new Error("GOOGLE_DRIVE_CLIENT_JSON must contain an OAuth client object.");
+    }
+
+    const root = parsedClientJson as Record<string, unknown>;
+    const oauthConfig = root["web"] ?? root["installed"] ?? root;
+    if (!oauthConfig || typeof oauthConfig !== "object" || Array.isArray(oauthConfig)) {
+      throw new Error("GOOGLE_DRIVE_CLIENT_JSON must contain a web or installed OAuth client.");
+    }
+
+    const credentials = oauthConfig as Record<string, unknown>;
+    jsonClientId =
+      typeof credentials["client_id"] === "string"
+        ? credentials["client_id"].trim()
+        : undefined;
+    jsonClientSecret =
+      typeof credentials["client_secret"] === "string"
+        ? credentials["client_secret"].trim()
+        : undefined;
+  }
+
+  const configuredClientId = process.env["GOOGLE_DRIVE_CLIENT_ID"]?.trim();
+  if (configuredClientId && jsonClientId && configuredClientId !== jsonClientId) {
+    throw new Error("GOOGLE_DRIVE_CLIENT_ID does not match GOOGLE_DRIVE_CLIENT_JSON.");
+  }
+
+  const clientId = configuredClientId || jsonClientId;
+  const clientSecret =
+    process.env["GOOGLE_DRIVE_CLIENT_SECRET"]?.trim() || jsonClientSecret;
   if (!clientId || !clientSecret) {
     throw new Error(
-      "Google Drive OAuth is not configured: GOOGLE_DRIVE_CLIENT_ID and GOOGLE_DRIVE_CLIENT_SECRET are required",
+      "Google Drive OAuth requires GOOGLE_DRIVE_CLIENT_ID and GOOGLE_DRIVE_CLIENT_SECRET, or a web/installed GOOGLE_DRIVE_CLIENT_JSON.",
     );
   }
   return new google.auth.OAuth2(
